@@ -12,13 +12,16 @@ typedef struct {
 }Message;
 
 typedef struct{
-    char **itens;
+    Message **itens;
     int size;
-    int ocupation;
+    int head;
     sem_t *semaphore;
     pthread_mutex_t *mutex;
 }Queue;
 
 Queue *buildQueue(int buffer, pthread_mutex_t *mutex, sem_t *semaphore);
+void enqueue(Queue *queue, Message *message);
+Message *dequeue(Queue *queue);
+void freeQueue(Queue *queue);
 
 #endif /*CONTROL*/
