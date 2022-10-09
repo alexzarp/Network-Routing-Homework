@@ -1,7 +1,5 @@
 #ifndef CONTROL
 #define CONTROL
-#include <pthread.h>
-#include <semaphore.h> 
 
 typedef struct {
     int type;
@@ -10,13 +8,15 @@ typedef struct {
     void *payload;
 }Message;
 
+typedef struct node{
+    Message *msg;
+    struct node *next;
+}Node;
+
 typedef struct{
-    char **itens;
-    int size;
-    int ocupation;
-    sem_t *semaphore;
-    pthread_mutex_t *mutex;
+    Node *head;
+    Node *tail;
 }Queue;
 
-Queue *buildQueue();
+Queue *buildQueue(int type);
 #endif /*CONTROL*/
