@@ -1,7 +1,8 @@
 #ifndef CONTROL
 #define CONTROL
 #include <pthread.h>
-#include <semaphore.h> 
+#include <semaphore.h>
+#include <stdlib.h>
 
 typedef struct {
     int type;
@@ -18,5 +19,6 @@ typedef struct{
     pthread_mutex_t *mutex;
 }Queue;
 
-Queue *buildQueue();
+Queue *buildQueue(int buffer, pthread_mutex_t *mutex, sem_t *semaphore);
+
 #endif /*CONTROL*/
