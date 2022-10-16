@@ -24,4 +24,9 @@ void enqueue(Queue *queue, Message *message);
 Message *dequeue(Queue *queue);
 void freeQueue(Queue *queue);
 
+//Threads
+void *sender(void *output);
+void *messageHandle(void **queues);
+void *receiver(void *input);
+
 #endif /*CONTROL*/
