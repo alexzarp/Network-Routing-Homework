@@ -16,13 +16,17 @@ typedef struct{
     Message **itens;
     int size;
     int head;
+    int tail;
     sem_t *semaphore;
     pthread_mutex_t *mutex;
 }Queue;
 
+// Messages Functions
 Message *buildMessage(int type, char *root, char *destiny, void *payload);
 void displayMessage(Message *msg);
 
+
+// Queues Functions
 Queue *buildQueue(int buffer);
 void enqueue(Queue *queue, Message *message);
 Message *dequeue(Queue *queue);

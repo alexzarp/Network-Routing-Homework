@@ -1,5 +1,14 @@
 #include "control.h"
 
+Message *buildMessage(int type, char *root, char *destiny, void *payload){
+    Message *msg = malloc(sizeof(*msg));
+    msg->root = root;
+    msg->destiny = destiny;
+    msg->payload = payload;
+    msg->type = type;
+    return msg;
+}
+
 void displayMessage(Message *msg){
     printf("\n------------------------------\n");
     printf("HEADER\n");
@@ -10,15 +19,6 @@ void displayMessage(Message *msg){
     printf("------------------------------\n");
 }
 
-Message *buildMessage(int type, char *root, char *destiny, void *payload){
-    Message *msg = malloc(sizeof(*msg));
-    msg->root = root;
-    msg->destiny = destiny;
-    msg->payload = payload;
-    msg->type = type;
-    return msg;
-}
-
 Queue *buildQueue(int buffer){
     Queue *queue = malloc(sizeof(*queue));
     queue->itens = malloc(sizeof(Message *) * buffer);
@@ -27,6 +27,7 @@ Queue *buildQueue(int buffer){
 
     queue->size = buffer;
     queue->head = 0;
+    queue->tail = 0;
     queue->mutex = malloc(sizeof(pthread_mutex_t));
     queue->semaphore = malloc(sizeof(sem_t));
 
@@ -36,16 +37,43 @@ Queue *buildQueue(int buffer){
     return queue;
 }
 
+static void compressQueue(Queue *queue){
+    Message **new = malloc(sizeof(Message *) * queue->size);
+    for(int i = 0; i < queue->size; i++) new[i] = NULL;
+    
+    int j = queue->head;
+    for(int i = 0; i < queue->size && j < queue->size; i++){
+        new[i] = queue->itens[j];
+        j++;
+    }
+    queue->head = 0;
+    free(queue->itens);
+    queue->itens = new;
+}
+
 void enqueue(Queue *queue, Message *message){
     pthread_mutex_lock(queue->mutex);
 
-    if(queue->head >= queue->size){
+    if(queue->tail == queue->size){
+        if(queue->tail - queue->head != queue->size){
+            queue->tail -= queue->head;
+            compressQueue(queue);
+
+            queue->itens[queue->tail] = message;
+            ++queue->tail;
+
+            sem_post(queue->semaphore);
+
+            pthread_mutex_unlock(queue->mutex);
+
+            return;
+        }
         pthread_mutex_unlock(queue->mutex);    
         return;
     }
 
-    queue->itens[queue->head] = message;
-    ++queue->head;
+    queue->itens[queue->tail] = message;
+    ++queue->tail;
 
     sem_post(queue->semaphore);
 
@@ -59,8 +87,9 @@ Message *dequeue(Queue *queue){
 
     pthread_mutex_lock(queue->mutex);
 
-    buffer = queue->itens[queue->head - 1];
-    --queue->head;
+    buffer = queue->itens[queue->head];
+    queue->itens[queue->head] = NULL;
+    ++queue->head;
 
     pthread_mutex_unlock(queue->mutex);
 
