@@ -1,6 +1,25 @@
 #include "control.h"
 
-Queue *buildQueue(int buffer, pthread_mutex_t *mutex, sem_t *semaphore){
+void displayMessage(Message *msg){
+    printf("\n------------------------------\n");
+    printf("HEADER\n");
+    printf("\tMessage Type: %d\n", msg->type);
+    printf("\tRoot: %s\n", msg->root);
+    printf("\tDestiny: %s\n", msg->destiny);
+    printf("PAYLOAD\n\t%s\n", (char *)msg->payload);
+    printf("------------------------------\n");
+}
+
+Message *buildMessage(int type, char *root, char *destiny, void *payload){
+    Message *msg = malloc(sizeof(*msg));
+    msg->root = root;
+    msg->destiny = destiny;
+    msg->payload = payload;
+    msg->type = type;
+    return msg;
+}
+
+Queue *buildQueue(int buffer){
     Queue *queue = malloc(sizeof(*queue));
     queue->itens = malloc(sizeof(Message *) * buffer);
 
@@ -8,8 +27,11 @@ Queue *buildQueue(int buffer, pthread_mutex_t *mutex, sem_t *semaphore){
 
     queue->size = buffer;
     queue->head = 0;
-    queue->mutex = mutex;
-    queue->semaphore = semaphore;
+    queue->mutex = malloc(sizeof(pthread_mutex_t));
+    queue->semaphore = malloc(sizeof(sem_t));
+
+    pthread_mutex_init(queue->mutex, NULL);
+    sem_init(queue->semaphore, 0, 0);
 
     return queue;
 }
@@ -25,9 +47,9 @@ void enqueue(Queue *queue, Message *message){
     queue->itens[queue->head] = message;
     ++queue->head;
 
-    pthread_mutex_unlock(queue->mutex);
-
     sem_post(queue->semaphore);
+
+    pthread_mutex_unlock(queue->mutex);
 }
 
 Message *dequeue(Queue *queue){
@@ -37,7 +59,7 @@ Message *dequeue(Queue *queue){
 
     pthread_mutex_lock(queue->mutex);
 
-    buffer = queue->itens[queue->head];
+    buffer = queue->itens[queue->head - 1];
     --queue->head;
 
     pthread_mutex_unlock(queue->mutex);
