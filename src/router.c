@@ -52,3 +52,7 @@ void freeQueue(Queue *queue){
     sem_destroy(queue->semaphore);
     free(queue);
 }
+
+void *sender(void *output);
+void *messageHandle(void **queues);
+void *receiver(void *input);
