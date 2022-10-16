@@ -43,6 +43,8 @@
 *.pdb
 
 # Kernel Module Compile Results
+route
+rof
 *.mod*
 *.cmd
 .tmp_versions/
