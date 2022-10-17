@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define BUFFER 100
+#define BUFFER 300
 
 typedef struct {
     int type;

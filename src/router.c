@@ -149,8 +149,18 @@ void *sender(void *config){
     char buffer[BUFFER];
     while(1){
         memset(buffer,'\0', BUFFER);
-        Message *buffer = dequeue(arr->controlQueue);
-        displayMessage(buffer);
+        Message *msg = dequeue(arr->controlQueue);
+        char type[2];
+        sprintf(type, "%d", msg->type);
+        strcat(buffer, type);
+        strcat(buffer, "|");
+        strcat(buffer, msg->root);
+        strcat(buffer, "|");
+        strcat(buffer, msg->destiny);
+        strcat(buffer, "|");
+        strcat(buffer, (char *)msg->payload);
+
+        printf("%s\n", buffer);
     }
 }
 
@@ -161,9 +171,9 @@ void *receiver(void *config){
     while(1){
         memset(buffer,'\0', BUFFER);
 
-        if ((recvfrom(arr->socket, buffer, BUFFER, 0, arr->addrOther, arr->socketLen)) == -1)
+        if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)arr->addrOther, arr->socketLen)) == -1)
         {
-            die("recvfrom()");
+            exit(2);
         }
 
         char **result = stringSplit(buffer, "|");
