@@ -19,6 +19,23 @@ void displayMessage(Message *msg){
     printf("------------------------------\n");
 }
 
+void freeMessage(Message *msg){
+    free(msg->destiny);
+    free(msg->root);
+    free(msg->payload);
+    free(msg);
+}
+
+ThreadArr *buildThreadConfig(int socket, int *socketLen, struct sockaddr_in *addrMe, struct sockaddr_in *addrOther, Queue *controlQueue){
+    ThreadArr *new = malloc(sizeof(*new));
+    new->socket = socket;
+    new->socketLen = socketLen;
+    new->addrMe = addrMe;
+    new->addrOther = addrOther;
+    new->controlQueue = controlQueue;
+    return new;
+}
+
 Queue *buildQueue(int buffer){
     Queue *queue = malloc(sizeof(*queue));
     queue->itens = malloc(sizeof(Message *) * buffer);
@@ -102,4 +119,56 @@ void freeQueue(Queue *queue){
     pthread_mutex_destroy(queue->mutex);
     sem_destroy(queue->semaphore);
     free(queue);
+}
+
+static char **stringSplit(char *payload, char *sep){
+    char **result = NULL;
+    int size = 0;
+
+    for(int i = 0; payload[i] != '\0'; i++){
+        size += (int)payload[i] == (int)sep[0] ? 1 : 0; 
+    }
+
+    result = calloc(size+1, sizeof(char *));
+
+    char *token = strtok(payload, sep);
+    result[0] = token;
+    int i = 1;
+
+    while(token != NULL){
+        token = strtok(NULL, sep);
+        result[i] = token;
+        i++;
+    }
+
+    return result;
+}
+
+void *sender(void *config){
+    ThreadArr *arr = (ThreadArr *)config;
+    char buffer[BUFFER];
+    while(1){
+        memset(buffer,'\0', BUFFER);
+        Message *buffer = dequeue(arr->controlQueue);
+        displayMessage(buffer);
+    }
+}
+
+void *receiver(void *config){
+    ThreadArr *arr = (ThreadArr *)config;
+    char buffer[BUFFER];
+
+    while(1){
+        memset(buffer,'\0', BUFFER);
+
+        if ((recvfrom(arr->socket, buffer, BUFFER, 0, arr->addrOther, arr->socketLen)) == -1)
+        {
+            die("recvfrom()");
+        }
+
+        char **result = stringSplit(buffer, "|");
+
+        enqueue(arr->controlQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3]));
+    }
+    pthread_exit(NULL);
 }
