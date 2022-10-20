@@ -1,9 +1,6 @@
 #include "control.h"
+#include "rof.h"
 
-/*
-    Simple udp server
-    Silver Moon (m00n.silv3r@gmail.com)
-*/
 #include<stdio.h> //printf
 #include<string.h> //memset
 #include<stdlib.h> //exit(0);
