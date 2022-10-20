@@ -4,6 +4,7 @@
 #include <semaphore.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "thrd.c"
 
 typedef struct {
     int type;
