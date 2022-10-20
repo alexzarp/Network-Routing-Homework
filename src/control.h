@@ -11,37 +11,19 @@
 
 #define BUFFER 300
 
-typedef struct {
-    int type;
-    char *root;
-    char *destiny;
-    void *payload;
-}Message;
+typedef struct message Message;
 
-typedef struct{
-    Message **itens;
-    int size;
-    int head;
-    int tail;
-    sem_t *semaphore;
-    pthread_mutex_t *mutex;
-}Queue;
+typedef struct queue Queue;
 
-typedef struct{
-    int socket;
-    int *socketLen;
-    struct sockaddr_in *addrMe;
-    struct sockaddr_in *addrOther;
-    Queue *controlQueue;
-}ThreadArr;
+typedef struct thread_arr ThreadArr;
 
 // Messages Functions
-Message *buildMessage(int type, char *root, char *destiny, void *payload);
+Message *buildMessage(int type, char *root, char *destiny, void *payload, int len);
 void displayMessage(Message *msg);
 void freeMessage(Message *msg);
 
 // Threads Config Functions
-ThreadArr *buildThreadConfig(int socket, int *socketLen, struct sockaddr_in *addrMe, struct sockaddr_in *addrOther, Queue *controlQueue);
+ThreadArr *buildThreadConfig(int socket, struct sockaddr_in *addrMe, Queue *controlQueue);
 
 // Queues Functions
 Queue *buildQueue(int buffer);

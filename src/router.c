@@ -1,11 +1,35 @@
 #include "control.h"
 
-Message *buildMessage(int type, char *root, char *destiny, void *payload){
+struct message{
+    int type;
+    char *root;
+    char *destiny;
+    int len;
+    void *payload;
+};
+
+struct queue{
+    Message **itens;
+    int size;
+    int head;
+    int tail;
+    sem_t *semaphore;
+    pthread_mutex_t *mutex;
+};
+
+struct thread_arr{
+    int socket;
+    struct sockaddr_in *addrMe;
+    Queue *controlQueue;
+};
+
+Message *buildMessage(int type, char *root, char *destiny, void *payload, int len){
     Message *msg = malloc(sizeof(*msg));
     msg->root = root;
     msg->destiny = destiny;
     msg->payload = payload;
     msg->type = type;
+    msg->len = len;
     return msg;
 }
 
@@ -26,12 +50,10 @@ void freeMessage(Message *msg){
     free(msg);
 }
 
-ThreadArr *buildThreadConfig(int socket, int *socketLen, struct sockaddr_in *addrMe, struct sockaddr_in *addrOther, Queue *controlQueue){
+ThreadArr *buildThreadConfig(int socket, struct sockaddr_in *addrMe, Queue *controlQueue){
     ThreadArr *new = malloc(sizeof(*new));
     new->socket = socket;
-    new->socketLen = socketLen;
     new->addrMe = addrMe;
-    new->addrOther = addrOther;
     new->controlQueue = controlQueue;
     return new;
 }
@@ -145,11 +167,16 @@ static char **stringSplit(char *payload, char *sep){
 }
 
 void *sender(void *config){
+    struct sockaddr_in si_other;
+    int slen = sizeof(si_other);
     ThreadArr *arr = (ThreadArr *)config;
     char buffer[BUFFER];
+
     while(1){
         memset(buffer,'\0', BUFFER);
+        memset((char *) &si_other, 0, sizeof(si_other));
         Message *msg = dequeue(arr->controlQueue);
+
         char type[2];
         sprintf(type, "%d", msg->type);
         strcat(buffer, type);
@@ -160,25 +187,39 @@ void *sender(void *config){
         strcat(buffer, "|");
         strcat(buffer, (char *)msg->payload);
 
-        printf("%s\n", buffer);
+        char **adress = stringSplit((char *)msg->destiny, ":");
+        si_other.sin_family = AF_INET;
+        si_other.sin_port = htons(atoi(adress[2]));
+        if (inet_aton(adress[0], &si_other.sin_addr) == 0) 
+        {
+            fprintf(stderr, "inet_aton() failed\n");
+            exit(2);
+        }
+
+        if (sendto(arr->socket, buffer, strlen(buffer), 0, (struct sockaddr *)&si_other, slen) == -1)
+        {
+            exit(2);
+        }
     }
 }
 
 void *receiver(void *config){
+    struct sockaddr_in sin_other;
+    int slen = sizeof(sin_other);
     ThreadArr *arr = (ThreadArr *)config;
     char buffer[BUFFER];
 
     while(1){
         memset(buffer,'\0', BUFFER);
 
-        if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)arr->addrOther, arr->socketLen)) == -1)
+        if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)&sin_other, &slen)) == -1)
         {
             exit(2);
         }
 
         char **result = stringSplit(buffer, "|");
 
-        enqueue(arr->controlQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3]));
+        enqueue(arr->controlQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen));
     }
     pthread_exit(NULL);
 }
