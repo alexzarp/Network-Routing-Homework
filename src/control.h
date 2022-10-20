@@ -8,15 +8,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "thrd.c"
 
 #define BUFFER 300
 
-typedef struct message Message;
+typedef struct message{
+    int type;
+    char *root;
+    char *destiny;
+    int len;
+    void *payload;
+}Message;
+
+typedef struct {
+    int socket;
+    struct sockaddr_in *addrMe;
+    Queue *controlQueue;
+}ThreadArr;
 
 typedef struct queue Queue;
-
-typedef struct thread_arr ThreadArr;
 
 // Messages Functions
 Message *buildMessage(int type, char *root, char *destiny, void *payload, int len);
