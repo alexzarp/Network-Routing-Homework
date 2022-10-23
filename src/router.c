@@ -1,4 +1,5 @@
 #include "control.h"
+#include "rof.h"
 
 struct queue{
     Message **itens;
@@ -127,4 +128,35 @@ void freeQueue(Queue *queue){
     pthread_mutex_destroy(queue->mutex);
     sem_destroy(queue->semaphore);
     free(queue);
+}
+
+void die(char *s){
+    perror(s);
+    exit(1);
+}
+ 
+
+// buiuldRouter(rrouter(int num));
+int buildRouter (Router *router) {
+    struct sockaddr_in si_me, si_other;
+
+    int s, i, slen = sizeof(si_other) , recv_len;
+    char buf[BUFFER];
+
+    if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
+        die("socket");
+    }
+
+    memset((char *) &si_me, 0, sizeof(si_me));
+
+    si_me.sin_family = AF_INET;
+    si_me.sin_port = htons(router->port);
+    si_me.sin_addr.s_addr = htonl(router->ip);
+    // por enquanto, o id serve só pra leitura?
+
+    if (bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1){
+        die("bind");
+    }
+
+    return s;
 }
