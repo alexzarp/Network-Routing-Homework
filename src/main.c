@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     ret_term = pthread_create(&thrd3, NULL, terminal, (void*) mes_term);
 
     // id roteador a ser inicializado
-    int s = buildRouter(rrouter((int)argv[0]));
+    int s = buildRouter(rrouter(argv[0]));
 
     pthread_join(thrd0, NULL);
     pthread_join(thrd1, NULL);
