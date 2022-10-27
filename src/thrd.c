@@ -26,13 +26,13 @@ static char **stringSplit(char *payload, char *sep){
 void *sender(void *config){
     struct sockaddr_in si_other;
     int slen = sizeof(si_other);
-    ThreadArr *arr = (ThreadArr *)config;
+    ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
     while(1){
         memset(buffer,'\0', BUFFER);
         memset((char *) &si_other, 0, sizeof(si_other));
-        Message *msg = dequeue(arr->controlQueue);
+        Message *msg = dequeue(arr->outputQueue);
 
         char type[2];
         sprintf(type, "%d", msg->type);
@@ -63,7 +63,7 @@ void *sender(void *config){
 void *receiver(void *config){
     struct sockaddr_in sin_other;
     int slen = sizeof(sin_other);
-    ThreadArr *arr = (ThreadArr *)config;
+    ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
     while(1){
@@ -76,15 +76,36 @@ void *receiver(void *config){
 
         char **result = stringSplit(buffer, "|");
 
-        enqueue(arr->controlQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen));
+        enqueue(arr->inputQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen));
     }
     pthread_exit(NULL);
 }
 
-void *packet_handler (void *ptr) {
+void *packet_handler (void *config) {
+    ThreadConfig *att = (ThreadConfig *)config;
+    while(1){
+        Message *msg = dequeue(att->inputQueue);
+        char **adress = stringSplit((char *)msg->destiny, ":");
 
+        if(htonl(adress[0]) == att->addrMe->sin_addr.s_addr && htons(adress[1]) == att->addrMe->sin_port){
+            char **output = stringSplit((char *)msg->payload, "|");
+            printf("%s", output[3]);
+        } else{
+            enqueue(att->outputQueue, msg);
+        }
+    }
 }
 
-void *terminal (void *ptr) {
-    
+void *terminal (void *config) { // ThreadConfig.socket = router id;
+    ThreadConfig *att = (ThreadConfig *)config;
+    char *buffer[BUFFER];
+
+    do{
+        printf("\n------------------------- Router %d -------------------------\n", att->socket);
+        printf("Input Formart: IP:PORT Message\n");
+        printf("type q to exit\n");
+        printf("Message: ");
+        fgets(buffer, BUFFER, stdin);
+        buffer[strcspn(buffer, "\n")] = '\0';
+    }while(buffer[0] != 'q');
 }

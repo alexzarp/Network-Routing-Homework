@@ -37,11 +37,12 @@ void freeMessage(Message *msg){
     free(msg);
 }
 
-ThreadArr *buildThreadConfig(int socket, struct sockaddr_in *addrMe, Queue *controlQueue){
-    ThreadArr *new = malloc(sizeof(*new));
+ThreadConfig *buildThreadConfig(int socket, struct sockaddr_in *addrMe, Queue *inputQueue, Queue *ouputQueue){
+    ThreadConfig *new = malloc(sizeof(*new));
     new->socket = socket;
     new->addrMe = addrMe;
-    new->controlQueue = controlQueue;
+    new->inputQueue = inputQueue;
+    new->outputQueue = ouputQueue;
     return new;
 }
 
