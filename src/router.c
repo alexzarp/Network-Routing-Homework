@@ -37,8 +37,9 @@ void freeMessage(Message *msg){
     free(msg);
 }
 
-ThreadConfig *buildThreadConfig(int socket, struct sockaddr_in *addrMe, Queue *inputQueue, Queue *ouputQueue){
+ThreadConfig *buildThreadConfig(const int rid,const int socket, struct sockaddr_in *addrMe, Queue *inputQueue, Queue *ouputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
+    new->rid = rid;
     new->socket = socket;
     new->addrMe = addrMe;
     new->inputQueue = inputQueue;

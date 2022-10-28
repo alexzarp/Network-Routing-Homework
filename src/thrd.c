@@ -96,15 +96,18 @@ void *packet_handler (void *config) {
     }
 }
 
-void *terminal (void *config) { // ThreadConfig.socket = router id;
+void *terminal (void *config) {
     ThreadConfig *att = (ThreadConfig *)config;
     char *buffer[BUFFER];
 
     do{
-        printf("\n------------------------- Router %d -------------------------\n", att->socket);
-        printf("Input Formart: IP:PORT Message\n");
+        int drouter;
+        printf("\n------------------------- Router %d -------------------------\n", att->rid);
+        printf("Input Formart: ROUTER Message\n");
         printf("type q to exit\n");
         printf("Message: ");
+        scanf("%d", &drouter);
+        getchar();
         fgets(buffer, BUFFER, stdin);
         buffer[strcspn(buffer, "\n")] = '\0';
     }while(buffer[0] != 'q');

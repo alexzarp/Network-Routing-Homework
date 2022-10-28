@@ -23,6 +23,7 @@ typedef struct message{
 typedef struct queue Queue;
 
 typedef struct {
+    int rid;
     int socket;
     struct sockaddr_in *addrMe;
     Queue *outputQueue;
@@ -35,7 +36,7 @@ void displayMessage(Message *msg);
 void freeMessage(Message *msg);
 
 // Threads Config Functions
-ThreadConfig *buildThreadConfig(int socket, struct sockaddr_in *addrMe, Queue *outputQueue, Queue *inputQueue);
+ThreadConfig *buildThreadConfig(const int rid, const int socket, struct sockaddr_in *addrMe, Queue *outputQueue, Queue *inputQueue);
 
 // Queues Functions
 Queue *buildQueue(int buffer);
