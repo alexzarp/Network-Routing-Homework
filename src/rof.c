@@ -89,7 +89,7 @@ int **rlink(char id) {
 //     return 0;
 // }
 
-int main() {
-    rrouter('2');
-    return 0;
-}
+// int main() {
+//     rrouter('2');
+//     return 0;
+// }
