@@ -17,7 +17,7 @@ Router *rrouter(char num) {
     char port[6];
     char ip[15];
     while (fscanf(fp, "%s %s %s", num_r, port, ip) != EOF)
-		if (num == num_r[0])
+		if (atoi(&num) == atoi(num_r))
             break;
 
     // printf("%s %s %s\n", num_r, port, ip);
@@ -45,7 +45,8 @@ int countr() {
     return count;
 }
 
-int **rlink(char id) {// id do roteador atual
+// id do roteador atual
+int **rlink(char id) {
     char *filename = "../data/links.config";
     FILE *fp = fopen(filename, "r");
 
@@ -87,3 +88,8 @@ int **rlink(char id) {// id do roteador atual
 
 //     return 0;
 // }
+
+int main() {
+    rrouter('2');
+    return 0;
+}
