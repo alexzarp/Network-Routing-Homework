@@ -36,7 +36,7 @@ void displayMessage(Message *msg);
 void freeMessage(Message *msg);
 
 // Threads Config Functions
-ThreadConfig *buildThreadConfig(const int rid, const int socket, Queue *outputQueue, Queue *inputQueue);
+ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue);
 
 // Queues Functions
 Queue *buildQueue(int buffer);

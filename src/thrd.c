@@ -72,29 +72,31 @@ void *receiver(void *config){
 
         if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)&sin_other, &slen)) == -1)
         {
-            exit(2);
+            die("recvfrom");
         }
 
         char **result = stringSplit(buffer, "|");
+        Message *msg  = buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen);
 
-        enqueue(arr->inputQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen));
+        displayMessage(msg);
+
+        enqueue(arr->inputQueue, msg);
     }
 }
 
 void *packet_handler (void *config) {
-    ThreadConfig *att = (ThreadConfig *)config;
+    ThreadConfig *arr = (ThreadConfig *)config;
     while(1){
-        Message *msg = dequeue(att->inputQueue);
-        char **adress = stringSplit((char *)msg->destiny, ":");
+        Message *msg = dequeue(arr->inputQueue);
+        char **adress = stringSplit(msg->destiny, ":");
         char port[6];
 
-        sprintf(port, "%d", 25000+att->rid);
+        snprintf(port, 6,"%d", 25000+arr->rid);
 
-        if(!strcmp(adress[0], "127.0.0.1") && strcmp(adress[1], port)){
-            char **output = stringSplit((char *)msg->payload, "|");
-            printf("%s", output[3]);
+        if(!strcmp(adress[0], "127.0.0.1") && !strcmp(adress[1], port)){
+            printf("%s", (char *)msg->payload);
         } else{
-            enqueue(att->outputQueue, msg);
+            enqueue(arr->outputQueue, msg);
         }
     }
 }

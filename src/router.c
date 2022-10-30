@@ -38,12 +38,12 @@ void freeMessage(Message *msg){
     free(msg);
 }
 
-ThreadConfig *buildThreadConfig(const int rid,const int socket, Queue *inputQueue, Queue *ouputQueue){
+ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
     new->rid = rid;
     new->socket = socket;
     new->inputQueue = inputQueue;
-    new->outputQueue = ouputQueue;
+    new->outputQueue = outputQueue;
     return new;
 }
 
