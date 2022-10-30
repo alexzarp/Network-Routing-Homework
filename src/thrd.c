@@ -89,9 +89,10 @@ void *packet_handler (void *config) {
         char port[6];
 
         snprintf(port, 6,"%d", 25000+arr->rid);
-        
+
         if(!strcmp(adress[0], "127.0.0.1") && !strcmp(adress[1], port)){
-            printf("%s\n", (char *)msg->payload);
+            char **adress = stringSplit(msg->root, ":");
+            printf("\n%d: %s\n", atoi(adress[1]) - 25000,(char *)msg->payload);
         } else{
             enqueue(arr->outputQueue, msg);
         }
