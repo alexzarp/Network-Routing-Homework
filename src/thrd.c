@@ -130,11 +130,12 @@ void *terminal (void *config) {
         buffer[strcspn(buffer, "\n")] = '\0';
 
         if(drouter != -1 && links[att->rid -1][drouter -1]){
-            char root[15];
-            char destiny[15];
+            printf("Terminal: Loading adress\n");
+            char root[16];
+            char destiny[16];
 
-            sprintf(root, "127.0.0.1:%d", 25000 + att->rid);
-            sprintf(destiny, "127.0.0.1:%d", 25000 + drouter);
+            snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
+            snprintf(destiny, 16,"127.0.0.1:%d", 25000 + drouter);
             
             enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
         }else{
