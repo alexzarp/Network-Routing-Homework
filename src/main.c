@@ -15,23 +15,16 @@ int main(int argc, char **argv) {
     Queue *output = buildQueue(QUEUESIZE);
     Queue *input = buildQueue(QUEUESIZE);
 
-    ThreadConfig *mes_recv = buildThreadConfig((int)argv[1][0] - 48, s, NULL, input);
-    ThreadConfig *mes_send = buildThreadConfig((int)argv[1][0] - 48, s, output, NULL);
-    ThreadConfig *mes_pack = buildThreadConfig((int)argv[1][0] - 48, s, output, input);
-    ThreadConfig *mes_term = buildThreadConfig((int)argv[1][0] - 48, s, output, NULL);
+    ThreadConfig *mes_recv = buildThreadConfig((int)argv[1][0] - 48, s, input, NULL);
+    ThreadConfig *mes_send = buildThreadConfig((int)argv[1][0] - 48, s, NULL, output);
+    ThreadConfig *mes_pack = buildThreadConfig((int)argv[1][0] - 48, s, input, output);
+    ThreadConfig *mes_term = buildThreadConfig((int)argv[1][0] - 48, s, NULL, output);
 
     pthread_create(&thrd0, NULL, receiver, (void*) mes_recv);
     pthread_create(&thrd1, NULL, sender, (void*) mes_send);
     pthread_create(&thrd2, NULL, packet_handler, (void*) mes_pack);
     pthread_create(&thrd3, NULL, terminal, (void*) mes_term);
 
-    printf("Join Receiver\n");
-    pthread_join(thrd0, NULL);
-    printf("Join Sender\n");
-    pthread_join(thrd1, NULL);
-    printf("Join PH\n");
-    pthread_join(thrd2, NULL);
-    printf("Join Terminal\n");
     pthread_join(thrd3, NULL);
 
     close(s);

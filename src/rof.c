@@ -9,8 +9,7 @@ Router *rrouter(char num) {
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
-        printf("Error: could not open file %s", filename);
-        exit(1);
+        die("fopen");
     }
 
     char num_r[2];
@@ -29,7 +28,7 @@ Router *rrouter(char num) {
 }
 
 int countr() {
-    char *filename = "../data/routers.config";
+    char *filename = "data/routers.config";
     FILE *fp = fopen(filename, "r");
 
     int count = 0;
@@ -46,23 +45,17 @@ int countr() {
 
 // id do roteador atual
 int **rlink(char id) {
-    printf("Starting rlinks functions to rid %c\n", id);
     char *filename = "data/links.config";
-    printf("rlinks: read file %s\n", filename);
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
-        printf("Error: could not open file %s", filename);
-        exit(1);
+        die("fopen");
     }
-    printf("rlinks: count linked routers\n");
     int graph = countr();
 
-    printf("rlinks: create link matrix\n");
 	int **matrix = malloc(sizeof(int *) * graph);
     for(int i = 0; i < graph; i++) matrix[i] = malloc(sizeof(int) * graph);
 
-    printf("rlinks: init link matrix\n");
     for (int i = 0; i < graph; i++)
         for (int j = 0; j < graph; j++)
             matrix[i][j] = 0;

@@ -30,15 +30,12 @@ void *sender(void *config){
     ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
-    printf("Sender Start\n");
-
     while(1){
+        Message *msg = NULL;
         memset(buffer,'\0', BUFFER);
         memset((char *) &si_other, 0, sizeof(si_other));
-        printf("Sender: Get Message FROM QOUT\n");
-        Message *msg = dequeue(arr->outputQueue);
+        msg = dequeue(arr->outputQueue);
 
-        printf("Sender: Marshal Message in string\n");
         char type[2];
         sprintf(type, "%d", msg->type);
         strcat(buffer, type);
@@ -49,22 +46,18 @@ void *sender(void *config){
         strcat(buffer, "|");
         strcat(buffer, (char *)msg->payload);
 
-        printf("Sender: Start Destiny Buffer\n");
 
         char **adress = stringSplit((char *)msg->destiny, ":");
         si_other.sin_family = AF_INET;
         si_other.sin_port = htons(atoi(adress[2]));
         if (inet_aton(adress[0], &si_other.sin_addr) == 0) 
         {
-            fprintf(stderr, "inet_aton() failed\n");
-            exit(2);
+            die("inet_aton()");
         }
-
-        printf("Sender: Send message\n");
 
         if (sendto(arr->socket, buffer, strlen(buffer), 0, (struct sockaddr *)&si_other, slen) == -1)
         {
-            exit(2);
+            die("sento");
         }
     }
 }
@@ -75,41 +68,28 @@ void *receiver(void *config){
     ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
-    printf("Receiver Start\n");
-
     while(1){
         memset(buffer,'\0', BUFFER);
-
-        printf("Receiver: Receiving messages\n");
 
         if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)&sin_other, &slen)) == -1)
         {
             exit(2);
         }
 
-        printf("Receiver: Mapping message to struct\n");
-
         char **result = stringSplit(buffer, "|");
-
-        printf("Receiver: Enqueue message in QIN\n");
 
         enqueue(arr->inputQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen));
     }
-    pthread_exit(NULL);
 }
 
 void *packet_handler (void *config) {
     ThreadConfig *att = (ThreadConfig *)config;
-    printf("PH Start\n");
     while(1){
-        printf("PH: Get Message from QIN\n");
         Message *msg = dequeue(att->inputQueue);
         char **adress = stringSplit((char *)msg->destiny, ":");
         char port[6];
 
         sprintf(port, "%d", 25000+att->rid);
-
-        printf("PH: Redirecting Message from destinaction\n");
 
         if(!strcmp(adress[0], "127.0.0.1") && strcmp(adress[1], port)){
             char **output = stringSplit((char *)msg->payload, "|");
@@ -121,27 +101,35 @@ void *packet_handler (void *config) {
 }
 
 void *terminal (void *config) {
+    // starting variables
     ThreadConfig *att = (ThreadConfig *)config;
-    printf("Starting msg buffer\n");
     char buffer[BUFFER];
+    // mapping links to a adj matrix
+    int nlinks = countr();
     char rid = att->rid + 48;
-    printf("RID is %c\n", rid);
     int **links = rlink(rid);
 
-    printf("Terminal Start\n");
-
+    // starting main loop
     do{
         int drouter;
         printf("\n------------------------- Router %d -------------------------\n", att->rid);
+        printf("Neighborhood\n");
+        for(int i = 0; i < nlinks; i++){
+            if (i != att->rid - 1){
+                printf("%d: ",i);
+                for(int j = 0; j < nlinks; j++) if (links[i][j]) printf("%d ", links[i][j]);
+                printf("\n");
+            }
+        }
         printf("Input Formart: ROUTER Message\n");
-        printf("type q to exit\n");
+        printf("type '-1 q' to exit\n");
         printf("Message: ");
         scanf("%d", &drouter);
         getchar();
         fgets(buffer, BUFFER, stdin);
         buffer[strcspn(buffer, "\n")] = '\0';
 
-        if(links[att->rid][drouter]){
+        if(drouter != -1 && links[att->rid -1][drouter -1]){
             char root[15];
             char destiny[15];
 
@@ -150,7 +138,9 @@ void *terminal (void *config) {
             
             enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
         }else{
-            printf("Can't reach router %d\n", drouter);
+            if(drouter != -1){
+                printf("Can't reach router %d\n", drouter);
+            }
         }
     }while(strcmp(buffer, "q"));
 }
