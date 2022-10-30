@@ -78,8 +78,6 @@ void *receiver(void *config){
         char **result = stringSplit(buffer, "|");
         Message *msg  = buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen);
 
-        displayMessage(msg);
-
         enqueue(arr->inputQueue, msg);
     }
 }
@@ -87,7 +85,8 @@ void *receiver(void *config){
 void *packet_handler (void *config) {
     ThreadConfig *arr = (ThreadConfig *)config;
     while(1){
-        Message *msg = dequeue(arr->inputQueue);
+        // ponteiro corrompido?
+        Message *msg = dequeue(arr->inputQueue); // retornando struct vazia
         char **adress = stringSplit(msg->destiny, ":");
         char port[6];
 
