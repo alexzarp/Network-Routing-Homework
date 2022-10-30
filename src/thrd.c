@@ -46,10 +46,9 @@ void *sender(void *config){
         strcat(buffer, "|");
         strcat(buffer, (char *)msg->payload);
 
-
         char **adress = stringSplit((char *)msg->destiny, ":");
         si_other.sin_family = AF_INET;
-        si_other.sin_port = htons(atoi(adress[2]));
+        si_other.sin_port = htons(atoi(adress[1]));
         if (inet_aton(adress[0], &si_other.sin_addr) == 0) 
         {
             die("inet_aton()");
@@ -116,7 +115,7 @@ void *terminal (void *config) {
         printf("Neighborhood\n");
         for(int i = 0; i < nlinks; i++){
             if (i != att->rid - 1){
-                printf("%d: ",i);
+                printf("%d: ",i+1);
                 for(int j = 0; j < nlinks; j++) if (links[i][j]) printf("%d ", links[i][j]);
                 printf("\n");
             }
@@ -130,13 +129,12 @@ void *terminal (void *config) {
         buffer[strcspn(buffer, "\n")] = '\0';
 
         if(drouter != -1 && links[att->rid -1][drouter -1]){
-            printf("Terminal: Loading adress\n");
             char root[16];
             char destiny[16];
 
             snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
             snprintf(destiny, 16,"127.0.0.1:%d", 25000 + drouter);
-            
+
             enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
         }else{
             if(drouter != -1){
