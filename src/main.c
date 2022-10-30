@@ -10,23 +10,28 @@
  
 int main(int argc, char **argv) {
     pthread_t thrd0, thrd1, thrd2, thrd3;
-    char *mes_recv = "receiver thread";
-    char *mes_send = "sender thread";
-    char *mes_pack = "packet_handler thread";
-    char *mes_term = "terminal thread";
-    int ret_recv, ret_send, ret_pack, ret_term;
 
-    ret_recv = pthread_create(&thrd0, NULL, receiver, (void*) mes_recv);
-    ret_send = pthread_create(&thrd1, NULL, sender, (void*) mes_send);
-    ret_pack = pthread_create(&thrd2, NULL, packet_handler, (void*) mes_pack);
-    ret_term = pthread_create(&thrd3, NULL, terminal, (void*) mes_term);
+    int s = buildRouter(rrouter(argv[1][0]));
+    Queue *output = buildQueue(QUEUESIZE);
+    Queue *input = buildQueue(QUEUESIZE);
 
-    // id roteador a ser inicializado
-    int s = buildRouter(rrouter(argv));
+    ThreadConfig *mes_recv = buildThreadConfig((int)argv[1][0] - 48, s, NULL, input);
+    ThreadConfig *mes_send = buildThreadConfig((int)argv[1][0] - 48, s, output, NULL);
+    ThreadConfig *mes_pack = buildThreadConfig((int)argv[1][0] - 48, s, output, input);
+    ThreadConfig *mes_term = buildThreadConfig((int)argv[1][0] - 48, s, output, NULL);
 
+    pthread_create(&thrd0, NULL, receiver, (void*) mes_recv);
+    pthread_create(&thrd1, NULL, sender, (void*) mes_send);
+    pthread_create(&thrd2, NULL, packet_handler, (void*) mes_pack);
+    pthread_create(&thrd3, NULL, terminal, (void*) mes_term);
+
+    printf("Join Receiver\n");
     pthread_join(thrd0, NULL);
+    printf("Join Sender\n");
     pthread_join(thrd1, NULL);
+    printf("Join PH\n");
     pthread_join(thrd2, NULL);
+    printf("Join Terminal\n");
     pthread_join(thrd3, NULL);
 
     close(s);

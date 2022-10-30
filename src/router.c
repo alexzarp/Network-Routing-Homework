@@ -1,5 +1,6 @@
 #include "control.h"
 #include "rof.h"
+#include <string.h>
 
 struct queue{
     Message **itens;
@@ -37,11 +38,10 @@ void freeMessage(Message *msg){
     free(msg);
 }
 
-ThreadConfig *buildThreadConfig(const int rid,const int socket, struct sockaddr_in *addrMe, Queue *inputQueue, Queue *ouputQueue){
+ThreadConfig *buildThreadConfig(const int rid,const int socket, Queue *inputQueue, Queue *ouputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
     new->rid = rid;
     new->socket = socket;
-    new->addrMe = addrMe;
     new->inputQueue = inputQueue;
     new->outputQueue = ouputQueue;
     return new;
@@ -152,11 +152,16 @@ int buildRouter (Router *router) {
     memset((char *) &si_me, 0, sizeof(si_me));
 
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(router->port);
-    si_me.sin_addr.s_addr = htonl(router->ip);
+    si_me.sin_port = htons(atoi(router->port));
+
+    if (inet_aton(router->ip , &si_other.sin_addr) == 0) 
+    {
+        fprintf(stderr, "inet_aton() failed\n");
+        exit(1);
+    }
     // por enquanto, o id serve só pra leitura?
 
-    if (bind(s, (struct sockaddr*)&si_me, sizeof(si_me) ) == -1){
+    if (bind(s, (struct sockaddr *)&si_me, sizeof(si_me) ) == -1){
         die("bind");
     }
 

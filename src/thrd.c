@@ -1,4 +1,5 @@
 #include "control.h"
+#include "rof.h"
 
 static char **stringSplit(char *payload, char *sep){
     char **result = NULL;
@@ -29,11 +30,15 @@ void *sender(void *config){
     ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
+    printf("Sender Start\n");
+
     while(1){
         memset(buffer,'\0', BUFFER);
         memset((char *) &si_other, 0, sizeof(si_other));
+        printf("Sender: Get Message FROM QOUT\n");
         Message *msg = dequeue(arr->outputQueue);
 
+        printf("Sender: Marshal Message in string\n");
         char type[2];
         sprintf(type, "%d", msg->type);
         strcat(buffer, type);
@@ -44,6 +49,8 @@ void *sender(void *config){
         strcat(buffer, "|");
         strcat(buffer, (char *)msg->payload);
 
+        printf("Sender: Start Destiny Buffer\n");
+
         char **adress = stringSplit((char *)msg->destiny, ":");
         si_other.sin_family = AF_INET;
         si_other.sin_port = htons(atoi(adress[2]));
@@ -52,6 +59,8 @@ void *sender(void *config){
             fprintf(stderr, "inet_aton() failed\n");
             exit(2);
         }
+
+        printf("Sender: Send message\n");
 
         if (sendto(arr->socket, buffer, strlen(buffer), 0, (struct sockaddr *)&si_other, slen) == -1)
         {
@@ -66,15 +75,23 @@ void *receiver(void *config){
     ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
+    printf("Receiver Start\n");
+
     while(1){
         memset(buffer,'\0', BUFFER);
+
+        printf("Receiver: Receiving messages\n");
 
         if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)&sin_other, &slen)) == -1)
         {
             exit(2);
         }
 
+        printf("Receiver: Mapping message to struct\n");
+
         char **result = stringSplit(buffer, "|");
+
+        printf("Receiver: Enqueue message in QIN\n");
 
         enqueue(arr->inputQueue, buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen));
     }
@@ -83,11 +100,18 @@ void *receiver(void *config){
 
 void *packet_handler (void *config) {
     ThreadConfig *att = (ThreadConfig *)config;
+    printf("PH Start\n");
     while(1){
+        printf("PH: Get Message from QIN\n");
         Message *msg = dequeue(att->inputQueue);
         char **adress = stringSplit((char *)msg->destiny, ":");
+        char port[6];
 
-        if(htonl(adress[0]) == att->addrMe->sin_addr.s_addr && htons(adress[1]) == att->addrMe->sin_port){
+        sprintf(port, "%d", 25000+att->rid);
+
+        printf("PH: Redirecting Message from destinaction\n");
+
+        if(!strcmp(adress[0], "127.0.0.1") && strcmp(adress[1], port)){
             char **output = stringSplit((char *)msg->payload, "|");
             printf("%s", output[3]);
         } else{
@@ -98,7 +122,13 @@ void *packet_handler (void *config) {
 
 void *terminal (void *config) {
     ThreadConfig *att = (ThreadConfig *)config;
-    char *buffer[BUFFER];
+    printf("Starting msg buffer\n");
+    char buffer[BUFFER];
+    char rid = att->rid + 48;
+    printf("RID is %c\n", rid);
+    int **links = rlink(rid);
+
+    printf("Terminal Start\n");
 
     do{
         int drouter;
@@ -110,5 +140,17 @@ void *terminal (void *config) {
         getchar();
         fgets(buffer, BUFFER, stdin);
         buffer[strcspn(buffer, "\n")] = '\0';
-    }while(buffer[0] != 'q');
+
+        if(links[att->rid][drouter]){
+            char root[15];
+            char destiny[15];
+
+            sprintf(root, "127.0.0.1:%d", 25000 + att->rid);
+            sprintf(destiny, "127.0.0.1:%d", 25000 + drouter);
+            
+            enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
+        }else{
+            printf("Can't reach router %d\n", drouter);
+        }
+    }while(strcmp(buffer, "q"));
 }

@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "rof.h"
-// #include "control.h"
+#include "control.h"
 
 Router *rrouter(char num) {
     Router *router = malloc(sizeof(*router));
-    char *filename = "../data/routers.config";
+    char *filename = "data/routers.config";
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
@@ -20,7 +20,6 @@ Router *rrouter(char num) {
 		if (atoi(&num) == atoi(num_r))
             break;
 
-    // printf("%s %s %s\n", num_r, port, ip);
     router->id = num_r;
     router->port = port;
     router->ip = ip;
@@ -47,22 +46,26 @@ int countr() {
 
 // id do roteador atual
 int **rlink(char id) {
-    char *filename = "../data/links.config";
+    printf("Starting rlinks functions to rid %c\n", id);
+    char *filename = "data/links.config";
+    printf("rlinks: read file %s\n", filename);
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
         printf("Error: could not open file %s", filename);
         exit(1);
     }
-
+    printf("rlinks: count linked routers\n");
     int graph = countr();
+
+    printf("rlinks: create link matrix\n");
 	int **matrix = malloc(sizeof(int *) * graph);
-    for(int i = 0; i < graph; i++)
-        matrix[i] = malloc(sizeof(i));
+    for(int i = 0; i < graph; i++) matrix[i] = malloc(sizeof(int) * graph);
+
+    printf("rlinks: init link matrix\n");
     for (int i = 0; i < graph; i++)
         for (int j = 0; j < graph; j++)
             matrix[i][j] = 0;
-    // printf("%s %s %s\n", origin, destiny, size);
     char origin[2];
     char destiny[2];
     char size[3];
@@ -76,20 +79,3 @@ int **rlink(char id) {
     fclose(fp);
     return matrix;
 }
-
-// int main() {
-//     int graph = countr();
-//     int **matrix = rlink('2');
-//     for (int i = 0; i < graph; i++) {
-//         for (int j = 0; j < graph; j++)
-//             printf("%d ", matrix[i][j]);
-//         printf("\n");
-//     }
-
-//     return 0;
-// }
-
-// int main() {
-//     rrouter('2');
-//     return 0;
-// }

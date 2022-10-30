@@ -13,4 +13,8 @@ typedef struct {
     char *size;
 }Link;
 
+int **rlink(char id);
+Router *rrouter(char num);
+int countr();
+
 #endif

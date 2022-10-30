@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "rof.h"
 
 #define BUFFER 300
 #define QUEUESIZE 10
@@ -25,7 +26,6 @@ typedef struct queue Queue;
 typedef struct {
     int rid;
     int socket;
-    struct sockaddr_in *addrMe;
     Queue *outputQueue;
     Queue *inputQueue;
 }ThreadConfig;
@@ -36,7 +36,7 @@ void displayMessage(Message *msg);
 void freeMessage(Message *msg);
 
 // Threads Config Functions
-ThreadConfig *buildThreadConfig(const int rid, const int socket, struct sockaddr_in *addrMe, Queue *outputQueue, Queue *inputQueue);
+ThreadConfig *buildThreadConfig(const int rid, const int socket, Queue *outputQueue, Queue *inputQueue);
 
 // Queues Functions
 Queue *buildQueue(int buffer);
@@ -49,5 +49,9 @@ void *sender(void *output);
 void *packet_handler (void *config);
 void *receiver(void *input);
 void *terminal (void *config);
+
+//Router Functions
+int buildRouter (Router *router);
+void die(char *s);
 
 #endif /*CONTROL*/
