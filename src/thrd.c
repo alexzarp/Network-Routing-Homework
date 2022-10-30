@@ -65,10 +65,9 @@ void *receiver(void *config){
     struct sockaddr_in sin_other;
     int slen = sizeof(sin_other);
     ThreadConfig *arr = (ThreadConfig *)config;
-    char buffer[BUFFER];
 
     while(1){
-        memset(buffer,'\0', BUFFER);
+        char buffer[BUFFER];
 
         if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)&sin_other, &slen)) == -1)
         {
@@ -85,15 +84,14 @@ void *receiver(void *config){
 void *packet_handler (void *config) {
     ThreadConfig *arr = (ThreadConfig *)config;
     while(1){
-        // ponteiro corrompido?
         Message *msg = dequeue(arr->inputQueue); // retornando struct vazia
         char **adress = stringSplit(msg->destiny, ":");
         char port[6];
 
         snprintf(port, 6,"%d", 25000+arr->rid);
-
+        
         if(!strcmp(adress[0], "127.0.0.1") && !strcmp(adress[1], port)){
-            printf("%s", (char *)msg->payload);
+            printf("%s\n", (char *)msg->payload);
         } else{
             enqueue(arr->outputQueue, msg);
         }
