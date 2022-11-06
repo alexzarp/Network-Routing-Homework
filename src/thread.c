@@ -1,5 +1,13 @@
 #include "thread.h"
-#include "control.h"
+
+ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue){
+    ThreadConfig *new = malloc(sizeof(*new));
+    new->rid = rid;
+    new->socket = socket;
+    new->inputQueue = inputQueue;
+    new->outputQueue = outputQueue;
+    return new;
+}
 
 static char **stringSplit(char *payload, char *sep){
     char **result = NULL;

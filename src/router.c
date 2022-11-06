@@ -16,15 +16,6 @@ struct router{
     char *ip;
 };
 
-ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue){
-    ThreadConfig *new = malloc(sizeof(*new));
-    new->rid = rid;
-    new->socket = socket;
-    new->inputQueue = inputQueue;
-    new->outputQueue = outputQueue;
-    return new;
-}
-
 Queue *buildQueue(int buffer){
     Queue *queue = malloc(sizeof(*queue));
     queue->itens = malloc(sizeof(Message *) * buffer);

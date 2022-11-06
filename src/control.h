@@ -23,7 +23,6 @@ void enqueue(Queue *queue, Message *message);
 Message *dequeue(Queue *queue);
 void freeQueue(Queue *queue);
 
-
 //Router Functions
 int buildRouter (Router *router);
 void die(char *s);
