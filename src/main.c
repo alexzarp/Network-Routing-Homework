@@ -1,6 +1,5 @@
 #include "control.h"
 #include "rof.h"
-#include<pthread.h>
  
 int main(int argc, char **argv) {
     pthread_t thrd0, thrd1, thrd2, thrd3;
@@ -24,6 +23,3 @@ int main(int argc, char **argv) {
     close(s);
     return 0;
 }
-
-
- 

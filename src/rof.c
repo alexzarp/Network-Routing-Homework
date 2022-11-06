@@ -1,7 +1,17 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "rof.h"
 #include "control.h"
+
+struct router{
+    char *id;
+    char *port;
+    char *ip;
+};
+
+struct link{
+    char *origin;
+    char *destination;
+    char *size;
+};
 
 Router *rrouter(char num) {
     Router *router = malloc(sizeof(*router));

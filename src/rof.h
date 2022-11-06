@@ -1,17 +1,9 @@
 #ifndef ROF
 #define ROF
 
-typedef struct {
-    char *id;
-    char *port;
-    char *ip;
-}Router;
+typedef struct router Router;
 
-typedef struct {
-    char *origin;
-    char *destination;
-    char *size;
-}Link;
+typedef struct link Link;
 
 int **rlink(char id);
 Router *rrouter(char num);

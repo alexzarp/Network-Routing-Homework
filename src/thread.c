@@ -1,5 +1,5 @@
+#include "thread.h"
 #include "control.h"
-#include "rof.h"
 
 static char **stringSplit(char *payload, char *sep){
     char **result = NULL;
