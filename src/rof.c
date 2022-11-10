@@ -73,7 +73,7 @@ int **rlink(char id) {
     char destiny[2];
     char size[3];
     while (fscanf(fp, "%s %s %s", origin, destiny, size) != EOF) {
-        if (atoi(origin) == atoi(&id)) {
+        if (atoi(origin) == atoi(&id) || atoi(destiny) == atoi(&id)) {
             matrix[atoi(origin) -1][atoi(destiny) -1] = atoi(size);
             matrix[atoi(destiny) -1][atoi(origin) -1] = atoi(size);
         }
