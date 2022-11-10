@@ -15,7 +15,7 @@ typedef struct {
 ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue);
 
 void *sender(void *output);
-void *packet_handler (void *config);
+void *packetHandler (void *config);
 void *receiver(void *input);
 void *terminal (void *config);
 

@@ -89,7 +89,7 @@ void *receiver(void *config){
     }
 }
 
-void *packet_handler (void *config) {
+void *packetHandler (void *config) {
     ThreadConfig *arr = (ThreadConfig *)config;
     while(1){
         Message *msg = dequeue(arr->inputQueue); // retornando struct vazia

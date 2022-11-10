@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
 
     pthread_create(&thrd0, NULL, receiver, (void*) mes_recv);
     pthread_create(&thrd1, NULL, sender, (void*) mes_send);
-    pthread_create(&thrd2, NULL, packet_handler, (void*) mes_pack);
+    pthread_create(&thrd2, NULL, packetHandler, (void*) mes_pack);
     pthread_create(&thrd3, NULL, terminal, (void*) mes_term);
 
     pthread_join(thrd3, NULL);
