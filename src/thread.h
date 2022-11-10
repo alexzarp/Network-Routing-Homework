@@ -27,4 +27,7 @@ void *receiver(void *config);
 // recebe comandos e mensagens do usuário, as redireciona para fila de saída
 void *terminal (void *config);
 
+// envia mensagens de ping para os vizinhos
+void *ping(void *config);
+
 #endif /*THRD*/

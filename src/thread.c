@@ -1,5 +1,8 @@
 #include "thread.h"
 
+int **links = NULL;
+pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
     new->rid = rid;
@@ -114,13 +117,17 @@ void *terminal (void *config) {
     // mapping links to a adj matrix
     int nlinks = countr();
     char rid = att->rid + 48;
-    int **links = rlink(rid);
+
+    pthread_mutex_lock(&link_mutex);
+    links = rlink(rid);
+    pthread_mutex_unlock(&link_mutex);
 
     // starting main loop
     do{
         int drouter;
         printf("\n------------------------- Router %d -------------------------\n", att->rid);
         printf("Neighborhood\n");
+        pthread_mutex_lock(&link_mutex);
         for(int i = 0; i < nlinks; i++){
             if (i != att->rid - 1){
                 printf("%d: ",i+1);
@@ -128,6 +135,7 @@ void *terminal (void *config) {
                 printf("\n");
             }
         }
+        pthread_mutex_unlock(&link_mutex);
         printf("Input Formart: ROUTER Message\n");
         printf("type '-1 q' to exit\n");
         printf("Message: ");
@@ -136,7 +144,9 @@ void *terminal (void *config) {
         fgets(buffer, BUFFER, stdin);
         buffer[strcspn(buffer, "\n")] = '\0';
 
+        pthread_mutex_lock(&link_mutex);
         if(drouter != -1 && links[att->rid -1][drouter -1]){
+            pthread_mutex_unlock(&link_mutex);
             char root[16];
             char destiny[16];
 
@@ -145,9 +155,35 @@ void *terminal (void *config) {
 
             enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
         }else{
+            pthread_mutex_unlock(&link_mutex);
             if(drouter != -1){
                 printf("Can't reach router %d\n", drouter);
             }
         }
     }while(strcmp(buffer, "q"));
+}
+
+void *ping(void *config){
+    ThreadConfig *att = (ThreadConfig *)config;
+    int nlinks = countr();
+
+    while(1){
+        pthread_mutex_lock(&link_mutex);
+        if(links){
+            for(int i = 0; i < nlinks; i++){
+                if(links[att->rid-1][i]){
+                    char root[16];
+                    char destiny[16];
+                    char ping[7];
+
+                    snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
+                    snprintf(destiny, 16,"127.0.0.1:%d", 25000 + i + 1);
+                    snprintf(ping, "ping %d", att->rid);
+
+                    enqueue(att->outputQueue, buildMessage(0, root, destiny, (void *)ping, 7));
+                }
+            }
+        }
+        pthread_mutex_unlock(&link_mutex);
+    }
 }
