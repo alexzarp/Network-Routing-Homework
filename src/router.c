@@ -123,14 +123,13 @@ int buildRouter (Router *router) {
     si_me.sin_family = AF_INET;
     si_me.sin_port = htons(atoi(router->port));
 
-    if (inet_aton(router->ip , &si_other.sin_addr) == 0) 
-    {
+    if (inet_aton(router->ip , &si_other.sin_addr) == 0) {
         fprintf(stderr, "inet_aton() failed\n");
         exit(1);
     }
     // por enquanto, o id serve só pra leitura?
 
-    if (bind(s, (struct sockaddr *)&si_me, sizeof(si_me) ) == -1){
+    if (bind(s, (struct sockaddr *)&si_me, sizeof(si_me)) == -1){
         die("bind");
     }
 
