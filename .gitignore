@@ -57,3 +57,5 @@ key
 .ccl-cache
 .ccls-cache
 .vscode
+*.nix
+.replit
