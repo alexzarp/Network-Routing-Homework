@@ -18,6 +18,7 @@ int main(int argc, char **argv) {
     configs[3] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
     configs[4] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
     configs[5] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, NULL, NULL);
+    configs[6] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
 
     // iniciando threads
     pthread_create(&tpid[0], NULL, receiver, (void*) configs[0]);
@@ -26,6 +27,7 @@ int main(int argc, char **argv) {
     pthread_create(&tpid[3], NULL, terminal, (void*) configs[3]);
     pthread_create(&tpid[4], NULL, ping, (void*) configs[4]);
     pthread_create(&tpid[5], NULL, pong, (void*) configs[5]);
+    pthread_create(&tpid[6], NULL, gossip, (void*) configs[6]);
 
     // join na thread de terminal
     pthread_join(tpid[3], NULL);

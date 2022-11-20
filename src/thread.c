@@ -37,6 +37,18 @@ static char **stringSplit(char *payload, char *sep){
     return result;
 }
 
+static void resetLinks(const int rid, const int size){
+    if(!links) return;
+
+    pthread_mutex_lock(&link_mutex);
+
+    for(int i = 0; i < size; i++)
+        for(int j = 0; j < size; j++)
+            if(i != rid - 1 && j != rid -1) links[i][j] = 0;
+
+    pthread_mutex_unlock(&link_mutex);
+}
+
 void *sender(void *config){
     //printf("\nSender: Load arguments\n");
     struct sockaddr_in si_other;
@@ -228,6 +240,7 @@ void *pong(void *config){
         for(int i = 0; i < att->nrouters; i++){
             if(att->rid != i + 1){
                 setStatus(att->srouter, i + 1, 0);
+                resetLinks(att->rid, att->nrouters);
             }
         }
         sleep(TIMEOUT * 3);
