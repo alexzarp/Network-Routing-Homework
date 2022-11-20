@@ -8,6 +8,7 @@ typedef struct queue Queue;
 typedef struct {
     int rid;
     int socket;
+    int nrouters;
     Queue *outputQueue;
     Queue *inputQueue;
 }ThreadConfig;

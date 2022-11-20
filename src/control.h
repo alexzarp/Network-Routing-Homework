@@ -12,6 +12,7 @@
 #include "rof.h"
 #include "message.h"
 #include "thread.h"
+#include "status.h"
 
 #define BUFFER 100 // tamanho da mensagem
 #define QUEUESIZE 10 // tamanho da fila

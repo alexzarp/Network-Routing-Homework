@@ -7,6 +7,7 @@ ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *
     ThreadConfig *new = malloc(sizeof(*new));
     new->rid = rid;
     new->socket = socket;
+    new->nrouters = countr();
     new->inputQueue = inputQueue;
     new->outputQueue = outputQueue;
     return new;
@@ -127,7 +128,6 @@ void *terminal (void *config) {
     ThreadConfig *att = (ThreadConfig *)config;
     char buffer[BUFFER];
     // mapping links to a adj matrix
-    int nlinks = countr();
     char rid = att->rid + 48;
 
     //printf("\nTerminal: Init links matrix\n");
@@ -141,10 +141,10 @@ void *terminal (void *config) {
         printf("\n------------------------- Router %d -------------------------\n", att->rid);
         printf("Neighborhood\n");
         pthread_mutex_lock(&link_mutex);
-        for(int i = 0; i < nlinks; i++){
+        for(int i = 0; i < att->nrouters; i++){
             if (i != att->rid - 1){
                 printf("%d: ",i+1);
-                for(int j = 0; j < nlinks; j++) if (links[i][j]) printf("%d ", links[i][j]);
+                for(int j = 0; j < att->nrouters; j++) if (links[i][j]) printf("%d ", links[i][j]);
                 printf("\n");
             }
         }
@@ -181,7 +181,6 @@ void *terminal (void *config) {
 void *ping(void *config){
     //printf("\nPing: Load Configs and Couting Router in Network\n");
     ThreadConfig *att = (ThreadConfig *)config;
-    int nlinks = countr();
 
     while(1){
         //printf("\nPing: Lock link mutex\n");
@@ -189,7 +188,7 @@ void *ping(void *config){
         //printf("\nPing: Check if link matrix is null\n");
         if(links){
             //printf("\nPing: Find Neibors\n");
-            for(int i = 0; i < nlinks; i++){
+            for(int i = 0; i < att->nrouters; i++){
                 if(links[att->rid-1][i]){
                     char *root = malloc(sizeof(char) * 16);
                     char *destiny = malloc(sizeof(char) * 16);
