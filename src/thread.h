@@ -36,4 +36,7 @@ void *ping(void *config);
 // controla os timeout de estado dos roteadores
 void *pong(void *config);
 
+// envia o vetor distância para os vizinhos
+void *gossip(void *config);
+
 #endif /*THRD*/

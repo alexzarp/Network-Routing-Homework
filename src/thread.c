@@ -233,3 +233,11 @@ void *pong(void *config){
         sleep(TIMEOUT * 3);
     }
 }
+
+void *gossip(void *config){
+    ThreadConfig *att = (ThreadConfig *)config;
+
+    while(1){
+        sleep(TIMEOUT * 2);
+    }
+}
