@@ -3,18 +3,20 @@
 
 #include "control.h"
 
+typedef struct status Status;
 typedef struct queue Queue;
 
 typedef struct {
     int rid;
     int socket;
+    Status *srouter;
     int nrouters;
     Queue *outputQueue;
     Queue *inputQueue;
 }ThreadConfig;
 
 // cria o arquivo de configuração que será passado como argumento para as Threads
-ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue);
+ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter, Queue *outputQueue, Queue *inputQueue);
 
 // retira mensagens da fila de saida e as envia
 void *sender(void *config);

@@ -3,11 +3,12 @@
 int **links = NULL;
 pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-ThreadConfig *buildThreadConfig(int rid, int socket, Queue *outputQueue, Queue *inputQueue){
+ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter,Queue *outputQueue, Queue *inputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
     new->rid = rid;
     new->socket = socket;
     new->nrouters = countr();
+    new->srouter = srouter;
     new->inputQueue = inputQueue;
     new->outputQueue = outputQueue;
     return new;

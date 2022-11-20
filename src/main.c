@@ -8,13 +8,14 @@ int main(int argc, char **argv) {
     int s = buildRouter(rrouter(argv[1][0]));
     Queue *output = buildQueue(QUEUESIZE);
     Queue *input = buildQueue(QUEUESIZE);
+    Status *srouter = buildStatus((int)argv[1][0] - 48, countr());
 
     // criando arquivos de configuração das threads
-    ThreadConfig *mes_recv = buildThreadConfig((int)argv[1][0] - 48, s, NULL, input);
-    ThreadConfig *mes_send = buildThreadConfig((int)argv[1][0] - 48, s, output, NULL);
-    ThreadConfig *mes_pack = buildThreadConfig((int)argv[1][0] - 48, s, output, input);
-    ThreadConfig *mes_term = buildThreadConfig((int)argv[1][0] - 48, s, output, NULL);
-    ThreadConfig *mes_ping = buildThreadConfig((int)argv[1][0] - 48, s, output, NULL);
+    ThreadConfig *mes_recv = buildThreadConfig((int)argv[1][0] - 48, s, srouter, NULL, input);
+    ThreadConfig *mes_send = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
+    ThreadConfig *mes_pack = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, input);
+    ThreadConfig *mes_term = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
+    ThreadConfig *mes_ping = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
 
     // iniciando threads
     pthread_create(&thrd0, NULL, receiver, (void*) mes_recv);
