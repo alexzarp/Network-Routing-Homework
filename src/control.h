@@ -16,6 +16,7 @@
 
 #define BUFFER 100 // tamanho da mensagem
 #define QUEUESIZE 10 // tamanho da fila
+#define TIMEOUT 5 // timeout para o ping
 
 typedef struct queue Queue;
 

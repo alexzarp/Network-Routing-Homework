@@ -37,10 +37,6 @@ static char **stringSplit(char *payload, char *sep){
     return result;
 }
 
-static void *watcher(void *config){
-
-}
-
 void *sender(void *config){
     //printf("\nSender: Load arguments\n");
     struct sockaddr_in si_other;
@@ -217,10 +213,19 @@ void *ping(void *config){
         //printf("\nPing: Unlock link mutex\n");
         pthread_mutex_unlock(&link_mutex);
         //printf("\nPing: Sleep for 5 seconds\n");
-		sleep(5);
+		sleep(TIMEOUT);
     }
 }
 
 void *pong(void *config){
+    ThreadConfig *att = (ThreadConfig *)config;
 
+    while(1){
+        for(int i = 0; i < att->nrouters; i++){
+            if(att->rid != i + 1){
+                setStatus(att->srouter, i + 1, 0);
+            }
+        }
+        sleep(TIMEOUT * 3);
+    }
 }

@@ -2,7 +2,7 @@
 #include "rof.h"
  
 int main(int argc, char **argv) {
-    pthread_t thrd0, thrd1, thrd2, thrd3, thrd4;
+    pthread_t tpid[6];
 
     // iniciando socket e filas
     int s = buildRouter(rrouter(argv[1][0]));
@@ -16,16 +16,18 @@ int main(int argc, char **argv) {
     ThreadConfig *mes_pack = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, input);
     ThreadConfig *mes_term = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
     ThreadConfig *mes_ping = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
+    ThreadConfig *mes_pong = buildThreadConfig((int)argv[1][0] - 48, s, srouter, NULL, NULL);
 
     // iniciando threads
-    pthread_create(&thrd0, NULL, receiver, (void*) mes_recv);
-    pthread_create(&thrd1, NULL, sender, (void*) mes_send);
-    pthread_create(&thrd2, NULL, packetHandler, (void*) mes_pack);
-    pthread_create(&thrd3, NULL, terminal, (void*) mes_term);
-    pthread_create(&thrd4, NULL, ping, (void*) mes_ping);
+    pthread_create(&tpid[0], NULL, receiver, (void*) mes_recv);
+    pthread_create(&tpid[1], NULL, sender, (void*) mes_send);
+    pthread_create(&tpid[2], NULL, packetHandler, (void*) mes_pack);
+    pthread_create(&tpid[3], NULL, terminal, (void*) mes_term);
+    pthread_create(&tpid[4], NULL, ping, (void*) mes_ping);
+    pthread_create(&tpid[5], NULL, pong, (void*) mes_pong);
 
     // join na thread de terminal
-    pthread_join(thrd3, NULL);
+    pthread_join(tpid[3], NULL);
 
     close(s);
     return 0;
