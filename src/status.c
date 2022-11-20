@@ -42,6 +42,17 @@ void setStatus(Status *s, int rid, int value){
     pthread_mutex_unlock(s->mutex);
 }
 
+void displayStatus(Status *s, int rid){
+    printf("\n------------------------- Routers Status -------------------------\n");
+    pthread_mutex_lock(s->mutex);
+    for(int i = 0; i < s->size; i++){
+        if (i != rid - 1){
+            printf("%d: %s\n", i+1, s->sarray[i] ? "Online" : "Offline");
+        }
+    }
+    pthread_mutex_unlock(s->mutex);
+}
+
 void freeStatus(Status *s){
     pthread_mutex_lock(s->mutex);
     free(s->sarray);

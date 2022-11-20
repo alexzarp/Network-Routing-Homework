@@ -179,6 +179,10 @@ void *terminal (void *config) {
                 printf("Can't reach router %d\n", drouter);
             }
         }
+
+        if(drouter == -1 && !strcmp(buffer, "lstatus")){
+            displayStatus(att->srouter, att->rid);
+        }
     }while(strcmp(buffer, "q"));
 }
 
