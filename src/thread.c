@@ -44,7 +44,7 @@ static void resetLinks(const int rid, const int size){
 
     for(int i = 0; i < size; i++)
         for(int j = 0; j < size; j++)
-            if(i != rid - 1 && j != rid -1) links[i][j] = 0;
+            if(!links[i][rid-1] && !links[rid-1][j]) links[i][j] = 0;
 
     pthread_mutex_unlock(&link_mutex);
 }
