@@ -33,4 +33,7 @@ void *terminal (void *config);
 // envia mensagens de ping para os vizinhos
 void *ping(void *config);
 
+// controla os timeout de estado dos roteadores
+void *pong(void *config);
+
 #endif /*THRD*/

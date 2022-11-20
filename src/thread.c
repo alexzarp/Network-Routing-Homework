@@ -37,6 +37,10 @@ static char **stringSplit(char *payload, char *sep){
     return result;
 }
 
+static void *watcher(void *config){
+
+}
+
 void *sender(void *config){
     //printf("\nSender: Load arguments\n");
     struct sockaddr_in si_other;
@@ -115,7 +119,10 @@ void *packetHandler (void *config) {
             char **adress = stringSplit(msg->root, ":");
             printf("\n%d: %s\n", atoi(adress[1]) - 25000,(char *)msg->payload);
         }else if (!msg->type){
-            // rotina de controle
+            char **control_msg = stringSplit((char *)msg->payload, " ");
+            if (!strcmp(control_msg[0], "ping")){
+                setStatus(arr->srouter, atoi(control_msg[1]), 1);
+            }
         } else{
             //printf("\nPH: Enqueue msg in output queue\n");
             enqueue(arr->outputQueue, msg);
@@ -212,4 +219,8 @@ void *ping(void *config){
         //printf("\nPing: Sleep for 5 seconds\n");
 		sleep(5);
     }
+}
+
+void *pong(void *config){
+
 }
