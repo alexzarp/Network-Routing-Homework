@@ -263,9 +263,9 @@ void *gossip(void *config){
 
     while(1){
         pthread_mutex_lock(&link_mutex);
-        //printf("\nPing: Check if link matrix is null\n");
+        //printf("\nGossip: Check if link matrix is null\n");
         if(links){
-            //printf("\nPing: Find Neibors\n");
+            //printf("\nGossip: Find Neibors\n");
             for(int i = 0; i < att->nrouters; i++){
                 if(links[att->rid-1][i]){
                     char *root = malloc(sizeof(char) * 16);
@@ -278,13 +278,14 @@ void *gossip(void *config){
                         index += sprintf(&temp[index], "%d-", links[att->rid-1][j]);
                     }
 
-                    //printf("\nPing: Build ping message\n");
+                    //printf("\nGossip: Build gossip message\n");
 					snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
 					snprintf(destiny, 16,"127.0.0.1:%d", 25001 + i);
                     snprintf(gossip, gtam,"gossip %d %s", att->rid, temp);
+                    free(temp);
 					Message *msg = buildMessage(0, root, destiny, (void *)gossip, gtam);
 
-                    //printf("\nPing: Enqueue ping message in ouput queue\n");
+                    //printf("\nGossip: Enqueue gossip message in ouput queue\n");
 
                     enqueue(att->outputQueue, msg);
                 }
