@@ -1,7 +1,9 @@
 #include "thread.h"
 
 int **links = NULL;
+int *parents = NULL;
 pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t parents_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter,Queue *outputQueue, Queue *inputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
@@ -131,6 +133,10 @@ void *packetHandler (void *config) {
             if (!strcmp(control_msg[0], "ping")){
                 setStatus(arr->srouter, atoi(control_msg[1]), 1);
             }
+
+            if (!strcmp(control_msg[0], "gossip")){
+                printf("\n%s: %s\n", control_msg[1], control_msg[2]);
+            }
         } else{
             //printf("\nPH: Enqueue msg in output queue\n");
             enqueue(arr->outputQueue, msg);
@@ -150,6 +156,10 @@ void *terminal (void *config) {
     pthread_mutex_lock(&link_mutex);
     links = rlink(rid);
     pthread_mutex_unlock(&link_mutex);
+
+    pthread_mutex_lock(&parents_mutex);
+    parents = calloc(att->nrouters, sizeof(int));
+    pthread_mutex_unlock(&parents_mutex);
 
     // starting main loop
     do{
@@ -249,8 +259,39 @@ void *pong(void *config){
 
 void *gossip(void *config){
     ThreadConfig *att = (ThreadConfig *)config;
+    int gtam = (att->nrouters * 3) + 10;
 
     while(1){
+        pthread_mutex_lock(&link_mutex);
+        //printf("\nPing: Check if link matrix is null\n");
+        if(links){
+            //printf("\nPing: Find Neibors\n");
+            for(int i = 0; i < att->nrouters; i++){
+                if(links[att->rid-1][i]){
+                    char *root = malloc(sizeof(char) * 16);
+                    char *destiny = malloc(sizeof(char) * 16);
+                    char *gossip = calloc(gtam, sizeof(char));
+                    char *temp = calloc(att->nrouters * 3, sizeof(char));
+                    int index = 0;
+
+                    for(int j = 0; j < att->nrouters; j++){
+                        index += sprintf(&temp[index], "%d-", links[att->rid-1][j]);
+                    }
+
+                    //printf("\nPing: Build ping message\n");
+					snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
+					snprintf(destiny, 16,"127.0.0.1:%d", 25001 + i);
+                    snprintf(gossip, gtam,"gossip %d %s", att->rid, temp);
+					Message *msg = buildMessage(0, root, destiny, (void *)gossip, gtam);
+
+                    //printf("\nPing: Enqueue ping message in ouput queue\n");
+
+                    enqueue(att->outputQueue, msg);
+                }
+            }
+        }
+        //printf("\nPing: Unlock link mutex\n");
+        pthread_mutex_unlock(&link_mutex);
         sleep(TIMEOUT * 2);
     }
 }
