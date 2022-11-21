@@ -133,5 +133,7 @@ int buildRouter (Router *router) {
         die("bind");
     }
 
+    free(router);
+
     return s;
 }

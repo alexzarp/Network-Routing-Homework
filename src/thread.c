@@ -16,7 +16,7 @@ ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter,Queue *outp
     return new;
 }
 
-static char **stringSplit(char *payload, char *sep){
+static char **stringSplit(char *payload,const char *sep){
     char **result = NULL;
     int size = 0;
 
@@ -26,12 +26,11 @@ static char **stringSplit(char *payload, char *sep){
 
     result = calloc(size+1, sizeof(char *));
 
-    char *token = strtok(payload, sep);
+    char *token = strtok_r(payload, sep, &payload);
     result[0] = token;
     int i = 1;
 
-    while(token != NULL){
-        token = strtok(NULL, sep);
+    while ((token = strtok_r(payload, " ", &payload))){
         result[i] = token;
         i++;
     }
@@ -60,14 +59,14 @@ void *sender(void *config){
 
     while(1){
         //printf("\nSender: Get message from output queue\n");
-        Message *msg = NULL;
+        Message *msg;
         memset(buffer,'\0', BUFFER);
         memset((char *) &si_other, 0, sizeof(si_other));
         msg = dequeue(arr->outputQueue);
 
         //printf("\nSender: Map message to string\n");
         char type[2];
-        sprintf(type, "%d", msg->type);
+        snprintf(type, 2,"%d", msg->type);
         strcat(buffer, type);
         strcat(buffer, "|");
         strcat(buffer, msg->root);
@@ -89,6 +88,7 @@ void *sender(void *config){
         {
             die("sender sento");
         }
+        free(msg);
     }
 }
 
@@ -259,8 +259,8 @@ void *pong(void *config){
 
 void *gossip(void *config){
     ThreadConfig *att = (ThreadConfig *)config;
-    int gtam = (att->nrouters * 3) + 10;
-
+    int ttam = att->nrouters * 4;
+    int gtam = (att->nrouters * ttam) + 10;
     while(1){
         pthread_mutex_lock(&link_mutex);
         //printf("\nGossip: Check if link matrix is null\n");
@@ -268,21 +268,20 @@ void *gossip(void *config){
             //printf("\nGossip: Find Neibors\n");
             for(int i = 0; i < att->nrouters; i++){
                 if(links[att->rid-1][i]){
-                    char *root = malloc(sizeof(char) * 16);
-                    char *destiny = malloc(sizeof(char) * 16);
-                    char *gossip = calloc(gtam, sizeof(char));
-                    char *temp = calloc(att->nrouters * 3, sizeof(char));
+                    char *root = calloc(16, sizeof(char));
+                    char *destiny = calloc(16, sizeof(char));
+                    char gossip[gtam];
+                    char *temp = calloc(ttam, sizeof(char));
                     int index = 0;
 
                     for(int j = 0; j < att->nrouters; j++){
-                        index += sprintf(&temp[index], "%d-", links[att->rid-1][j]);
+                        index += snprintf(&temp[index], (ttam)-index, "%d-", links[att->rid-1][j]);
                     }
 
                     //printf("\nGossip: Build gossip message\n");
 					snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
 					snprintf(destiny, 16,"127.0.0.1:%d", 25001 + i);
                     snprintf(gossip, gtam,"gossip %d %s", att->rid, temp);
-                    free(temp);
 					Message *msg = buildMessage(0, root, destiny, (void *)gossip, gtam);
 
                     //printf("\nGossip: Enqueue gossip message in ouput queue\n");
