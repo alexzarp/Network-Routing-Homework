@@ -30,7 +30,7 @@ static char **stringSplit(char *payload,const char *sep){
     result[0] = token;
     int i = 1;
 
-    while ((token = strtok_r(payload, " ", &payload))){
+    while ((token = strtok_r(payload, sep, &payload))){
         result[i] = token;
         i++;
     }
@@ -108,7 +108,6 @@ void *receiver(void *config){
         //printf("\nReceiver: Load incomming message\n");
         char **result = stringSplit(buffer, "|");
         Message *msg  = buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen);
-        displayMessage(msg);
         //printf("\nReceiver: Enqueue message in input queue\n");
         enqueue(arr->inputQueue, msg);
     }
