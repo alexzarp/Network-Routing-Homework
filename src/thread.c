@@ -108,6 +108,7 @@ void *receiver(void *config){
         //printf("\nReceiver: Load incomming message\n");
         char **result = stringSplit(buffer, "|");
         Message *msg  = buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen);
+        displayMessage(msg);
         //printf("\nReceiver: Enqueue message in input queue\n");
         enqueue(arr->inputQueue, msg);
     }
@@ -270,8 +271,8 @@ void *gossip(void *config){
                 if(links[att->rid-1][i]){
                     char *root = calloc(16, sizeof(char));
                     char *destiny = calloc(16, sizeof(char));
-                    char gossip[gtam];
-                    char *temp = calloc(ttam, sizeof(char));
+                    char *gossip = calloc(gtam, sizeof(char));
+                    char temp[ttam];
                     int index = 0;
 
                     for(int j = 0; j < att->nrouters; j++){
