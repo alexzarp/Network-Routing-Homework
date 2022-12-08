@@ -9,4 +9,4 @@ int **rlink(char id); // lê dados do roteador id e retorna uma matrix com suas 
 Router *rrouter(char num); // lê dados do roteador id e retorna uma struct Router referente a ele
 int countr(); // conta o número de roteadores na rede
 
-#endif
+#endif /*ROF*/
