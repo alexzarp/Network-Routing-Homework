@@ -20,18 +20,10 @@ List *buildList(int type){
     new->head = NULL;
 }
 
-static Node *getNode(List *l, int id){
-    for(Node *aux = l->head; aux != NULL; aux = aux->next){
-			if(aux->id == id) return aux;
-		}
-		return NULL;
-}
-
 void addList(List *l, void *data){
-		Node *new;
     switch(l->type){
         case 0:
-            new = malloc(sizeof(*new));
+            Node *new = malloc(sizeof(*new));
             new->id = l->tail ? l->tail->id + 1 : 0;
             new->data = buildList(l->type + 1);
             new->next = NULL;
@@ -48,7 +40,7 @@ void addList(List *l, void *data){
 
             l->tail = new;
         case 1:
-            new = malloc(sizeof(*new));
+            Node *new = malloc(sizeof(*new));
             new->id = l->tail ? l->tail->id + 1 : 0;
             new->data = data;
             new->next = NULL;
@@ -74,7 +66,7 @@ int removeList(List *l, int id){
 		Node *n;
 		switch(l->type){
 			case 0:
-				if(l->head->id == id){
+				if(l->head->data.ind == data){
         	n = l->head;
         	if(!l->head->next){
 							freeList((List *)n->data);
@@ -90,7 +82,7 @@ int removeList(List *l, int id){
         	return 0;
     		}
 
-    		if(l->tail->id == id){
+    		if(l->tail->data.ind == data){
         		n = l->tail;
         		l->tail = n->prev;
         		l->tail->next = NULL;
@@ -100,11 +92,11 @@ int removeList(List *l, int id){
     		}
 				n = getNode(l,id);
 				if(!n) return 1;
-				freeList((List *)n->data);
+				freeList((List *)n->data;
 				free(n);
 				return 0;
 			case 1:
-				if(l->head->id == id){
+				if(l->head->data.ind == data){
         	n = l->head;
         	if(!l->head->next){
             	free(n);
@@ -118,7 +110,7 @@ int removeList(List *l, int id){
         	return 0;
     		}
 
-    		if(l->tail->id == id){
+    		if(l->tail->data.ind == data){
         		n = l->tail;
         		l->tail = n->prev;
         		l->tail->next = NULL;
@@ -135,9 +127,11 @@ int removeList(List *l, int id){
     }
 }
 
-void *getList(List *l, int id){
-    Node *n = getNode(l,id);
-		return n ? n->data : NULL;
+static Node *getNode(List *l, int id){
+    for(Node *aux = l->head; aux != NULL; aux = aux->next){
+			if(aux->id == id) return aux;
+		}
+		return NULL;
 }
 
 void freeList(List *l){
