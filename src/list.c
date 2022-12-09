@@ -33,7 +33,7 @@ void addList(List *l, void *data){
         case 0:
             new = malloc(sizeof(*new));
             new->id = l->tail ? l->tail->id + 1 : 0;
-            new->data = buildList(l->type + 1);
+            new->data = data;
             new->next = NULL;
             new->prev = NULL;
 
@@ -85,6 +85,8 @@ int removeList(List *l, int id){
         	}
         	l->head = l->head->next;
         	l->head->prev = NULL;
+					n->prev->next = n->next;
+					n->next->prev = n->prev;
 					freeList((List *)n->data);
         	free(n);
         	return 0;
@@ -127,6 +129,8 @@ int removeList(List *l, int id){
     		}
 				n = getNode(l,id);
 				if(!n) return 1;
+				n->prev->next = n->next;
+				n->next->prev = n->prev;
 				free(n);
 				return 0;
 
