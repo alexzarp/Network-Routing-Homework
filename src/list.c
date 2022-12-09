@@ -27,46 +27,23 @@ static Node *getNode(List *l, int id){
 		return NULL;
 }
 
-void addList(List *l, void *data){
+void addList(List *l, int id, void *data){
 		Node *new;
-    switch(l->type){
-        case 0:
-            new = malloc(sizeof(*new));
-            new->id = l->tail ? l->tail->id + 1 : 0;
-            new->data = data;
-            new->next = NULL;
-            new->prev = NULL;
+		new = malloc(sizeof(*new));
+		new->id = id;
+		new->data = data;
+		new->next = NULL;
+		new->prev = NULL;
 
-            if(!l->head){
-                l->head = new;
-                l->tail = new;
-                return;    
-            }
+		if(!l->head){
+			l->head = new;
+			l->tail = new;
+			return;    
+		}
 
-            new->prev = l->tail;
-            l->tail->next = new;
-
-            l->tail = new;
-        case 1:
-            new = malloc(sizeof(*new));
-            new->id = l->tail ? l->tail->id + 1 : 0;
-            new->data = data;
-            new->next = NULL;
-            new->prev = NULL;
-
-            if(!l->head){
-                l->head = new;
-                l->tail = new;
-                return;    
-            }
-
-            new->prev = l->tail;
-            l->tail->next = new;
-
-            l->tail = new;
-        default:
-            return;
-    }
+		new->prev = l->tail;
+		l->tail->next = new;
+		l->tail = new;
 }
 
 int removeList(List *l, int id){
