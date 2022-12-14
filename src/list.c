@@ -130,3 +130,19 @@ void freeList(List *l){
     free(l);
     l = NULL;
 }
+
+List *filterList(List *l, int (*filter)(void *)){
+  List *temp = buildList(l->type);
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->data)) addList(temp, aux->id, aux->data);
+  return temp;
+}
+
+List *mapList(List *l, void *(*mapper)(void *)){
+  List *temp = buildList(l->type);
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) addList(temp, aux->id, mapper(aux->data));
+  return temp;
+}
+
+void reduceList(List *l, void *acumulator,void (agregator)(void *, void *)){
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) agregator(acumulator, aux->data);
+}

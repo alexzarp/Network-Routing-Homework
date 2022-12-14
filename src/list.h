@@ -15,5 +15,11 @@ void *getList(List *l, int id);
 int removeList(List *l, int id);
 // libera espaço utilizado pela lista
 void freeList(List *l);
+// função de alta ordem: filter
+List *filterList(List *l, int (*filter)(void *));
+// função de alta ordem: map
+List *mapList(List *l, void *(*mapper)(void *));
+// função de alta ordem: reduce
+void reduceList(List *l, void *acumulator,void (agregator)(void *, void *));
 
 #endif /*LIST*/
