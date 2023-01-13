@@ -54,28 +54,30 @@ int countr() {
 }
 
 // id do roteador atual
-int **rlink(char id) {
+List *rlink(char id) {
     char *filename = "data/links.config";
     FILE *fp = fopen(filename, "r");
 
     if (fp == NULL) {
         die("fopen");
     }
-    int graph = countr();
 
-	int **matrix = malloc(sizeof(int *) * graph);
-    for(int i = 0; i < graph; i++) matrix[i] = malloc(sizeof(int) * graph);
+	List *matrix = buildList(0);
+    List *distance_vector = buildList(1);
+    int *data = malloc(sizeof(int));
+    *data = 0;
 
-    for (int i = 0; i < graph; i++)
-        for (int j = 0; j < graph; j++)
-            matrix[i][j] = 0;
+    addList(matrix, atoi(&id), (void *)distance_vector);
+    addList(distance_vector, atoi(&id), (void *)data);
+
     char origin[2];
     char destiny[2];
     char size[3];
     while (fscanf(fp, "%s %s %s", origin, destiny, size) != EOF) {
         if (atoi(origin) == atoi(&id) || atoi(destiny) == atoi(&id)) {
-            matrix[atoi(origin) -1][atoi(destiny) -1] = atoi(size);
-            matrix[atoi(destiny) -1][atoi(origin) -1] = atoi(size);
+            data = malloc(sizeof(int));
+            *data = atoi(size);
+            addList(distance_vector, atoi(origin) == atoi(&id) ? atoi(destiny) : atoi(origin), (void *)data);
         }
     }
 
