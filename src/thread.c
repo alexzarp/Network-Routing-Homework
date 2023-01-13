@@ -1,6 +1,6 @@
 #include "thread.h"
 
-int **links = NULL;
+List *links = NULL;
 int *parents = NULL;
 pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t parents_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -38,14 +38,31 @@ static char **stringSplit(char *payload,const char *sep){
     return result;
 }
 
-static void resetLinks(const int rid, const int size){
+static void resetLinks(const int self, const int neighbor){
     if(!links) return;
 
     pthread_mutex_lock(&link_mutex);
 
-    for(int i = 0; i < size; i++)
-        for(int j = 0; j < size; j++)
-            if(!links[i][rid-1] && !links[rid-1][j]) links[i][j] = 0;
+    List *dv = (List *)getList(links, self);
+    removeList(dv, neighbor);
+    removeList(links, neighbor);
+
+    pthread_mutex_unlock(&link_mutex);
+}
+
+static void displayNeighborhood(int rid){
+    void printer(int id, void *data){
+        if(id == rid) return;
+        int value = *((int *) data);
+        printf("%d: %d\n", id, value);
+    }
+    printf("\n------------------------- Router %d -------------------------\n", rid);
+    printf("Neighborhood\n");
+
+    pthread_mutex_lock(&link_mutex);
+
+    List *dv = (List *)getList(links, rid);
+    walksList(dv, printer);
 
     pthread_mutex_unlock(&link_mutex);
 }
@@ -155,6 +172,7 @@ void *terminal (void *config) {
     //printf("\nTerminal: Init links matrix\n");
     pthread_mutex_lock(&link_mutex);
     links = rlink(rid);
+    List *dv = (List *)getList(links, att->rid);
     pthread_mutex_unlock(&link_mutex);
 
     pthread_mutex_lock(&parents_mutex);
@@ -164,17 +182,7 @@ void *terminal (void *config) {
     // starting main loop
     do{
         int drouter;
-        printf("\n------------------------- Router %d -------------------------\n", att->rid);
-        printf("Neighborhood\n");
-        pthread_mutex_lock(&link_mutex);
-        for(int i = 0; i < att->nrouters; i++){
-            if (i != att->rid - 1){
-                printf("%d: ",i+1);
-                for(int j = 0; j < att->nrouters; j++) if (links[i][j]) printf("%d ", links[i][j]);
-                printf("\n");
-            }
-        }
-        pthread_mutex_unlock(&link_mutex);
+        displayNeighborhood(att->rid);
         printf("Input Formart: ROUTER Message\n");
         printf("type '-1 q' to exit\n");
         printf("Message: ");
@@ -185,7 +193,7 @@ void *terminal (void *config) {
 
         pthread_mutex_lock(&link_mutex);
         //printf("\nTerminal: Check if selected route is reacheble\n");
-        if(drouter != -1 && links[att->rid -1][drouter -1]){
+        if(drouter != -1 && getList(dv, drouter)){
             //printf("\nTerminal: Load message\n");
             pthread_mutex_unlock(&link_mutex);
             char root[16];
@@ -217,24 +225,25 @@ void *ping(void *config){
         pthread_mutex_lock(&link_mutex);
         //printf("\nPing: Check if link matrix is null\n");
         if(links){
-            //printf("\nPing: Find Neibors\n");
-            for(int i = 0; i < att->nrouters; i++){
-                if(links[att->rid-1][i]){
-                    char *root = malloc(sizeof(char) * 16);
-                    char *destiny = malloc(sizeof(char) * 16);
-                    char ping[7];
+            void sendPing(int id, void *data){
+                if(id == att->rid) return;
+                char *root = malloc(sizeof(char) * 16);
+                char *destiny = malloc(sizeof(char) * 16);
+                char *ping = malloc(sizeof(char) * 7);
 
-                    //printf("\nPing: Build ping message\n");
-					snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
-					snprintf(destiny, 16,"127.0.0.1:%d", 25001 + i);
-                    snprintf(ping, 7,"ping %d", att->rid);
-					Message *msg = buildMessage(0, root, destiny, (void *)ping, 7);
+                //printf("\nPing: Build ping message\n");
+				snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
+				snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
+                snprintf(ping, 7,"ping %d", att->rid);
+				Message *msg = buildMessage(0, root, destiny, (void *)ping, 7);
 
-                    //printf("\nPing: Enqueue ping message in ouput queue\n");
+                //printf("\nPing: Enqueue ping message in ouput queue\n");
 
-                    enqueue(att->outputQueue, msg);
-                }
+                enqueue(att->outputQueue, msg);
             }
+            List *dv = (List *) getList(links, att->rid);
+            //printf("\nPing: Find Neibors\n");
+            walksList(dv, sendPing);
         }
         //printf("\nPing: Unlock link mutex\n");
         pthread_mutex_unlock(&link_mutex);
@@ -257,41 +266,55 @@ void *pong(void *config){
     }
 }
 
-void *gossip(void *config){
-    ThreadConfig *att = (ThreadConfig *)config;
-    int ttam = att->nrouters * 4;
-    int gtam = (att->nrouters * ttam) + 10;
-    while(1){
-        pthread_mutex_lock(&link_mutex);
-        //printf("\nGossip: Check if link matrix is null\n");
-        if(links){
-            //printf("\nGossip: Find Neibors\n");
-            for(int i = 0; i < att->nrouters; i++){
-                if(links[att->rid-1][i]){
-                    char *root = calloc(16, sizeof(char));
-                    char *destiny = calloc(16, sizeof(char));
-                    char *gossip = calloc(gtam, sizeof(char));
-                    char temp[ttam];
-                    int index = 0;
+// void *gossip(void *config){
+//     ThreadConfig *att = (ThreadConfig *)config;
+//     while(1){
+//         pthread_mutex_lock(&link_mutex);
+//         //printf("\nGossip: Check if link matrix is not null\n");
+//         if(links){
+//             void countRouters(void *x, void *y){
+//                 int vx = *((int *) x);
+//                 int vy = *((int *) y);
+//                 vx += vy;
+//                 int *addressx = (int *) x;
+//                 *addressx = vx;
+//             }
 
-                    for(int j = 0; j < att->nrouters; j++){
-                        index += snprintf(&temp[index], (ttam)-index, "%d-", links[att->rid-1][j]);
-                    }
+//             List *dv = (List *) getList(links, att->rid);
 
-                    //printf("\nGossip: Build gossip message\n");
-					snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
-					snprintf(destiny, 16,"127.0.0.1:%d", 25001 + i);
-                    snprintf(gossip, gtam,"gossip %d %s", att->rid, temp);
-					Message *msg = buildMessage(0, root, destiny, (void *)gossip, gtam);
+//             int *nrouters = malloc(sizeof(int));
+//             reduceList(dv, (void *)nrouters, countRouters);
 
-                    //printf("\nGossip: Enqueue gossip message in ouput queue\n");
+//             int ttam = *nrouters * 4;
+//             int gtam = (*nrouters * ttam) + 10;
 
-                    enqueue(att->outputQueue, msg);
-                }
-            }
-        }
-        //printf("\nPing: Unlock link mutex\n");
-        pthread_mutex_unlock(&link_mutex);
-        sleep(TIMEOUT * 2);
-    }
-}
+//             char temp[ttam];
+//             char *root = calloc(16, sizeof(char));
+//             char *destiny = calloc(16, sizeof(char));
+//             char *gossip = calloc(gtam, sizeof(char));
+
+//             void sendGossip(int id, void *data){
+//                 int index = 0;
+
+//                 for(int j = 0; j < att->nrouters; j++){
+//                     index += snprintf(&temp[index], (ttam)-index, "%d-", links[att->rid-1][j]); // remapear para reduce
+//                 }
+//             }
+//             //printf("\nGossip: Find Neibors\n");
+//             reduceList(dv, sendGossip);
+
+//             //printf("\nGossip: Build gossip message\n");
+// 			snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
+// 			snprintf(destiny, 16,"127.0.0.1:%d", 25001 + id);
+//             snprintf(gossip, gtam,"gossip %d %s", att->rid, temp);
+// 			Message *msg = buildMessage(0, root, destiny, (void *)gossip, gtam);
+
+//             //printf("\nGossip: Enqueue gossip message in ouput queue\n");
+
+//             enqueue(att->outputQueue, msg);
+//         }
+//         //printf("\nPing: Unlock link mutex\n");
+//         pthread_mutex_unlock(&link_mutex);
+//         sleep(TIMEOUT * 2);
+//     }
+// }

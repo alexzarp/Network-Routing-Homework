@@ -2,6 +2,7 @@
 #define THRD
 
 #include "control.h"
+#include "list.h"
 
 typedef struct status Status;
 typedef struct queue Queue;
