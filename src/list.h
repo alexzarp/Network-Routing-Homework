@@ -1,7 +1,7 @@
 #ifndef LIST
 #define LIST
 
-#include "control.h"
+#include <stdlib.h>
 
 typedef struct list List;
 
@@ -15,11 +15,15 @@ void *getList(List *l, int id);
 int removeList(List *l, int id);
 // libera espaço utilizado pela lista
 void freeList(List *l);
+// percorre a lista e executa uma função de leitura
+void walksList(List *l, void (*walk)(int, void *));
 // função de alta ordem: filter
 List *filterList(List *l, int (*filter)(void *));
 // função de alta ordem: map
 List *mapList(List *l, void *(*mapper)(void *));
 // função de alta ordem: reduce
 void reduceList(List *l, void *acumulator,void (agregator)(void *, void *));
+// função de parse de lista para vetor
+void *parseToArray(List *l, int size);
 
 #endif /*LIST*/

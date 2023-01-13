@@ -131,6 +131,10 @@ void freeList(List *l){
     l = NULL;
 }
 
+void walksList(List *l, void (*walk)(int, void *)){
+	for(Node *aux = l->head; aux != NULL; aux = aux->next){ walk(aux->id, aux->data); }
+}
+
 List *filterList(List *l, int (*filter)(void *)){
   List *temp = buildList(l->type);
   for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->data)) addList(temp, aux->id, aux->data);
