@@ -22,8 +22,6 @@ List *filterList(List *l, int (*filter)(void *));
 // função de alta ordem: map
 List *mapList(List *l, void *(*mapper)(void *));
 // função de alta ordem: reduce
-void reduceList(List *l, void *acumulator,void (agregator)(void *, void *));
-// função de parse de lista para vetor
-void *parseToArray(List *l, int size);
+void reduceList(List *l, void *acumulator,void (agregator)(void *, int, void *));
 
 #endif /*LIST*/

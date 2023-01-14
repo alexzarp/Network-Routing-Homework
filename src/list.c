@@ -147,6 +147,6 @@ List *mapList(List *l, void *(*mapper)(void *)){
   return temp;
 }
 
-void reduceList(List *l, void *acumulator,void (agregator)(void *, void *)){
-  for(Node *aux = l->head; aux != NULL; aux = aux->next) agregator(acumulator, aux->data);
+void reduceList(List *l, void *acumulator,void (agregator)(void *, int, void *)){
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) agregator(acumulator, aux->id, aux->data);
 }
