@@ -93,6 +93,10 @@ void *sender(void *config){
         strcat(buffer, (char *)msg->payload);
 
         //printf("\nSender: Load destiny socket informations\n");
+        if(!strcmp((char *)msg->destiny, "127.0.0.1")){
+            free(msg);
+            continue;
+        }
         char **adress = stringSplit((char *)msg->destiny, ":");
         si_other.sin_family = AF_INET;
         si_other.sin_port = htons(atoi(adress[1]));
@@ -136,6 +140,7 @@ void *packetHandler (void *config) {
     while(1){
         //printf("\nPH: Get message from input queue\n");
         Message *msg = dequeue(arr->inputQueue);
+        //displayMessage(msg);
         char **adress = stringSplit(msg->destiny, ":");
         char port[6];
 
@@ -266,55 +271,56 @@ void *pong(void *config){
     }
 }
 
-// void *gossip(void *config){
-//     ThreadConfig *att = (ThreadConfig *)config;
-//     while(1){
-//         pthread_mutex_lock(&link_mutex);
-//         //printf("\nGossip: Check if link matrix is not null\n");
-//         if(links){
-//             void countRouters(void *x, void *y){
-//                 int vx = *((int *) x);
-//                 int vy = *((int *) y);
-//                 vx += vy;
-//                 int *addressx = (int *) x;
-//                 *addressx = vx;
-//             }
+void *gossip(void *config){
+    typedef struct{
+        char *string;
+        int size;
+        int current;
+    }CompString;
 
-//             List *dv = (List *) getList(links, att->rid);
+    ThreadConfig *att = (ThreadConfig *)config;
+    while(1){
+        pthread_mutex_lock(&link_mutex);
+        //printf("\nGossip: Check if link matrix is not null\n");
+        if(links){
+            int gtam = BUFFER + 10;
 
-//             int *nrouters = malloc(sizeof(int));
-//             reduceList(dv, (void *)nrouters, countRouters);
+            char *temp = calloc(BUFFER, sizeof(char));
 
-//             int ttam = *nrouters * 4;
-//             int gtam = (*nrouters * ttam) + 10;
+            CompString *aux = malloc(sizeof(CompString));
+            aux->current = 0;
+            aux->size = BUFFER;
+            aux->string = temp;
 
-//             char temp[ttam];
-//             char *root = calloc(16, sizeof(char));
-//             char *destiny = calloc(16, sizeof(char));
-//             char *gossip = calloc(gtam, sizeof(char));
+            List *dv = (List *) getList(links, att->rid);
 
-//             void sendGossip(int id, void *data){
-//                 int index = 0;
+            void buildGossip(void *acumulator, int id, void *data){
+                CompString *cs = (CompString *) acumulator;
+                int value = *((int *) data);
+                cs->current += snprintf(&cs->string[cs->current], (BUFFER)-cs->current, "(%d,%d)-", id, value);
+            }
+            //printf("\nGossip: stringtfy distance vector\n");
+            reduceList(dv, (void *)aux, buildGossip);
+            aux->string[aux->current-1] = '\0';
+            
+            //printf("\nGossip: Build gossip message\n");
+            void sendGossip(int id, void *data){
+                if (id == att->rid) return;
+                char *root = calloc(16, sizeof(char));
+                char *destiny = calloc(16, sizeof(char));
+                char *gossip = calloc(gtam, sizeof(char));
 
-//                 for(int j = 0; j < att->nrouters; j++){
-//                     index += snprintf(&temp[index], (ttam)-index, "%d-", links[att->rid-1][j]); // remapear para reduce
-//                 }
-//             }
-//             //printf("\nGossip: Find Neibors\n");
-//             reduceList(dv, sendGossip);
-
-//             //printf("\nGossip: Build gossip message\n");
-// 			snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
-// 			snprintf(destiny, 16,"127.0.0.1:%d", 25001 + id);
-//             snprintf(gossip, gtam,"gossip %d %s", att->rid, temp);
-// 			Message *msg = buildMessage(0, root, destiny, (void *)gossip, gtam);
-
-//             //printf("\nGossip: Enqueue gossip message in ouput queue\n");
-
-//             enqueue(att->outputQueue, msg);
-//         }
-//         //printf("\nPing: Unlock link mutex\n");
-//         pthread_mutex_unlock(&link_mutex);
-//         sleep(TIMEOUT * 2);
-//     }
-// }
+                snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
+                snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
+                snprintf(gossip, gtam,"gossip %d %s", att->rid, aux->string);
+                Message *msg = buildMessage(0, root, destiny, (void *)gossip, BUFFER);
+                //printf("\nGossip: Enqueue gossip message in ouput queue\n");
+                enqueue(att->outputQueue, msg);
+            }
+            walksList(dv, sendGossip);
+        }
+        //printf("\nGossip: Unlock link mutex\n");
+        pthread_mutex_unlock(&link_mutex);
+        sleep(TIMEOUT * 2);
+    }
+}
