@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
     int s = buildRouter(rrouter(argv[1][0]));
     Queue *output = buildQueue(QUEUESIZE);
     Queue *input = buildQueue(QUEUESIZE);
-    Status *srouter = buildStatus((int)argv[1][0] - 48, countr());
+    Status *srouter = buildStatus((int)argv[1][0] - 48);
 
     // criando arquivos de configuração das threads
     configs[0] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, NULL, input);

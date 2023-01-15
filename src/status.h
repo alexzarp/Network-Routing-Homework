@@ -5,7 +5,7 @@
 
 typedef struct status Status;
 
-Status *buildStatus(int rid, int size);
+Status *buildStatus(int rid);
 int getStatus(Status *s, int rid);
 void setStatus(Status *s, int rid, int value);
 void freeStatus(Status *s);
