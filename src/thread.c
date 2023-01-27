@@ -1,11 +1,12 @@
 #include "thread.h"
+#include "list.h"
 
 List *links = NULL;
 int *parents = NULL;
 pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t parents_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter,Queue *outputQueue, Queue *inputQueue){
+ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter, Queue *outputQueue, Queue *inputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
     new->rid = rid;
     new->socket = socket;
@@ -16,7 +17,7 @@ ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter,Queue *outp
     return new;
 }
 
-static char **stringSplit(char *payload,const char *sep){
+static char **stringSplit(char *payload, const char *sep){
     char **result = NULL;
     int size = 0;
 
@@ -158,6 +159,8 @@ void *packetHandler (void *config) {
 
             if (!strcmp(control_msg[0], "gossip")){
                 printf("\n%s: %s\n", control_msg[1], control_msg[2]);
+                // printf("%s", control_msg[2]);
+                // aqui captura
             }
         } else{
             //printf("\nPH: Enqueue msg in output queue\n");
@@ -167,6 +170,7 @@ void *packetHandler (void *config) {
 }
 
 void *terminal (void *config) {
+    system("clear");
     //printf("\nTerminal: Load variables\n");
     // starting variables
     ThreadConfig *att = (ThreadConfig *)config;
@@ -195,6 +199,7 @@ void *terminal (void *config) {
         getchar();
         fgets(buffer, BUFFER, stdin);
         buffer[strcspn(buffer, "\n")] = '\0';
+        system("clear");
 
         pthread_mutex_lock(&link_mutex);
         //printf("\nTerminal: Check if selected route is reacheble\n");
@@ -292,6 +297,7 @@ void *gossip(void *config){
             aux->size = BUFFER;
             aux->string = temp;
 
+            // distance vector
             List *dv = (List *) getList(links, att->rid);
 
             void buildGossip(void *acumulator, int id, void *data){
@@ -324,3 +330,94 @@ void *gossip(void *config){
         sleep(TIMEOUT * 2);
     }
 }
+
+#define INF (int)-2147483648
+
+char *replaceWord(const char* s, const char* oldW, const char* newW) { 
+    char* result; 
+    int i, cnt = 0; 
+    int newWlen = strlen(newW); 
+    int oldWlen = strlen(oldW); 
+  
+    // Counting the number of times old word 
+    // occur in the string 
+    for (i = 0; s[i] != '\0'; i++) { 
+        if (strstr(&s[i], oldW) == &s[i]) { 
+            cnt++; 
+  
+            // Jumping to index after the old word. 
+            i += oldWlen - 1; 
+        } 
+    } 
+  
+    // Making new string of enough length 
+    result = (char*)malloc(i + cnt * (newWlen - oldWlen) + 1); 
+  
+    i = 0; 
+    while (*s) { 
+        // compare the substring with the result 
+        if (strstr(s, oldW) == s) { 
+            strcpy(&result[i], newW); 
+            i += newWlen; 
+            s += oldWlen; 
+        } 
+        else
+            result[i++] = *s++; 
+    } 
+  
+    result[i] = '\0'; 
+    return result; 
+}
+
+// meu vetor e vetor recebido de algum vizinho
+// compara e muda para o menor custo
+// cria lista de saltos envia ao proximo
+// mata na minha lista quanto na principal
+// node: id do roteador, peso
+// campo para indicar como chegar naquela nodo
+// custo vai reduzindo ate chegar em 0 e encontrar o destino
+static void bellmanFordBuilder(List *l, int myid, char *vectord) {
+    int mycost;
+    int length(char **v) {
+        int len = sizeof(v)/sizeof(v[0]);
+        return len;
+    }
+
+    char **tuples = stringSplit(vectord, "-");
+    int len = length(tuples);
+
+    // como remover o X: se houver
+    for(int i = 0; i < len; i++) {
+        tuples[i] = replaceWord(tuples[i], "(", "");
+        tuples[i] = replaceWord(tuples[i], ")", "");
+    }
+    
+    // menor custo
+    for (int i = 0; i < len; i++) {
+        char **id_cost = stringSplit(tuples[i], ",");
+
+        Node *aux = getNode(l, id_cost[0]);
+        Node *mynode = getNode(l, myid);
+        if (aux && id_cost[0] == mycost->cost) {
+            // se o meu atual e pior ou melhor que o novo
+            // eu sou a primeira posicao
+            if (aux->cost > aoti(id_cost[1]) + mynode->cost) {
+                aux->cost =  aoti(id_cost[1]) + mynode->cost;
+            }
+        } else {
+            Node *generic;
+            addList(l, id_cost[0], id_cost[1] + mycost, generic); // depois preciso entender a necessidade de uma lista numa lista
+            free(generic);
+        }
+        free(aux);
+        free(mynode);
+    }
+
+    // infinito para reoteadores ja conhecidos porem desligados
+    for (int i = 0; i < len; i++) {
+        char **id_cost = stringSplit(tuples[i], ",");
+        filterList(l, atoi(id_cost[0]));
+    }
+}
+// falta conferir o custo corretamente e atualizar
+// falta matar roteadores sem resposta

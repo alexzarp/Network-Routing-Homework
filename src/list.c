@@ -1,11 +1,17 @@
 #include "list.h"
 
-typedef struct node{
+// struct cost{
+// 	int idpath;
+// 	int cost;
+// };
+
+struct node{
     int id;
+	int cost;
     void *data;
     struct node *next;
     struct node *prev;
-}Node;
+};
 
 struct list{
     int type;
@@ -22,98 +28,99 @@ List *buildList(int type){
 
 static Node *getNode(List *l, int id){
     for(Node *aux = l->head; aux != NULL; aux = aux->next){
-			if(aux->id == id) return aux;
-		}
-		return NULL;
+		if(aux->id == id) return aux;
+	}
+	return NULL;
 }
 
-void addList(List *l, int id, void *data){
-		Node *new;
-		new = malloc(sizeof(*new));
-		new->id = id;
-		new->data = data;
-		new->next = NULL;
-		new->prev = NULL;
+void addList(List *l, int id, int cost, void *data){
+	Node *new;
+	new = malloc(sizeof(*new));
+	new->id = id;
+	new->cost = cost;
+	new->data = data;
+	new->next = NULL;
+	new->prev = NULL;
 
-		if(!l->head){
-			l->head = new;
-			l->tail = new;
-			return;    
-		}
-
-		new->prev = l->tail;
-		l->tail->next = new;
+	if(!l->head){
+		l->head = new;
 		l->tail = new;
+		return;    
+	}
+
+	new->prev = l->tail;
+	l->tail->next = new;
+	l->tail = new;
 }
 
 int removeList(List *l, int id){
-		if(!l->head) return 1;
-		Node *n;
-		switch(l->type){
-			case 0:
-				if(l->head->id == id){
-        	n = l->head;
-        	if(!l->head->next){
-							freeList((List *)n->data);
-            	free(n);
-            	l->head = NULL;
-            	l->tail = NULL;
-            	return 0;
-        	}
-        	l->head = l->head->next;
-        	l->head->prev = NULL;
-					n->prev->next = n->next;
-					n->next->prev = n->prev;
+	if(!l->head) return 1;
+	Node *n;
+	switch(l->type){
+		case 0:
+			if(l->head->id == id){
+				n = l->head;
+				if(!l->head->next){
 					freeList((List *)n->data);
-        	free(n);
-        	return 0;
-    		}
-
-    		if(l->tail->id == id){
-        		n = l->tail;
-        		l->tail = n->prev;
-        		l->tail->next = NULL;
-						freeList((List *)n->data);
-        		free(n);
-        		return 0;
-    		}
-				n = getNode(l,id);
-				if(!n) return 1;
+					free(n);
+					l->head = NULL;
+					l->tail = NULL;
+					return 0;
+				}
+				l->head = l->head->next;
+				l->head->prev = NULL;
+				n->prev->next = n->next;
+				n->next->prev = n->prev;
 				freeList((List *)n->data);
 				free(n);
 				return 0;
-			case 1:
-				if(l->head->id == id){
-        	n = l->head;
-        	if(!l->head->next){
-            	free(n);
-            	l->head = NULL;
-            	l->tail = NULL;
-            	return 0;
-        	}
-        	l->head = l->head->next;
-        	l->head->prev = NULL;
-        	free(n);
-        	return 0;
-    		}
+			}
 
-    		if(l->tail->id == id){
-        		n = l->tail;
-        		l->tail = n->prev;
-        		l->tail->next = NULL;
-        		free(n);
-        		return 0;
-    		}
-				n = getNode(l,id);
-				if(!n) return 1;
-				n->prev->next = n->next;
-				n->next->prev = n->prev;
+			if(l->tail->id == id){
+				n = l->tail;
+				l->tail = n->prev;
+				l->tail->next = NULL;
+				freeList((List *)n->data);
 				free(n);
 				return 0;
+			}
+			n = getNode(l,id);
+			if(!n) return 1;
+			freeList((List *)n->data);
+			free(n);
+			return 0;
+		case 1:
+			if(l->head->id == id){
+				n = l->head;
+			if(!l->head->next){
+				free(n);
+				l->head = NULL;
+				l->tail = NULL;
+				return 0;
+			}
+			l->head = l->head->next;
+			l->head->prev = NULL;
+			free(n);
+			return 0;
+			}
 
-			default:
-				return 2;
-    }
+		if(l->tail->id == id){
+			n = l->tail;
+			l->tail = n->prev;
+			l->tail->next = NULL;
+			free(n);
+			return 0;
+		}
+		n = getNode(l,id);
+		if(!n) return 1;
+		n->prev->next = n->next;
+		n->next->prev = n->prev;
+		free(n);
+		return 0;
+
+		default:
+			return 2;
+	}
 }
 
 void *getList(List *l, int id){
@@ -131,22 +138,25 @@ void freeList(List *l){
     l = NULL;
 }
 
+// percorrer a lista
 void walksList(List *l, void (*walk)(int, void *)){
 	for(Node *aux = l->head; aux != NULL; aux = aux->next){ walk(aux->id, aux->data); }
 }
 
+// retorna um subconjunto determinado: cumpre um requisito ou nao
 List *filterList(List *l, int (*filter)(void *)){
   List *temp = buildList(l->type);
-  for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->data)) addList(temp, aux->id, aux->data);
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->data)) addList(temp, aux->id, aux->cost, aux->data);
   return temp;
 }
 
 List *mapList(List *l, void *(*mapper)(void *)){
   List *temp = buildList(l->type);
-  for(Node *aux = l->head; aux != NULL; aux = aux->next) addList(temp, aux->id, mapper(aux->data));
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) addList(temp, aux->id, aux->cost, mapper(aux->data));
   return temp;
 }
 
+// 
 void reduceList(List *l, void *acumulator,void (agregator)(void *, int, void *)){
   for(Node *aux = l->head; aux != NULL; aux = aux->next) agregator(acumulator, aux->id, aux->data);
 }

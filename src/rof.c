@@ -62,6 +62,7 @@ List *rlink(char id) {
         die("fopen");
     }
 
+// 1 - Mensagem | 0 - Controle
 	List *matrix = buildList(0);
     List *distance_vector = buildList(1);
     int *data = malloc(sizeof(int));
@@ -77,7 +78,7 @@ List *rlink(char id) {
         if (atoi(origin) == atoi(&id) || atoi(destiny) == atoi(&id)) {
             data = malloc(sizeof(int));
             *data = atoi(size);
-            addList(distance_vector, atoi(origin) == atoi(&id) ? atoi(destiny) : atoi(origin), (void *)data);
+            addList(distance_vector, atoi(origin) == atoi(&id) ? atoi(destiny) : atoi(origin), atoi(size), (void *)data);
         }
     }
 
