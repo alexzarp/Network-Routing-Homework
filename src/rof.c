@@ -65,8 +65,10 @@ List *rlink(char id) {
 // 1 - Mensagem | 0 - Controle
 	List *matrix = buildList(0);
     List *distance_vector = buildList(1);
-    int *data = malloc(sizeof(int));
-    *data = 0;
+    Data *data = malloc(sizeof(Data));
+    data->timeout = 15;
+    data->cost = 0;
+    data->parent = -1;
 
     addList(matrix, atoi(&id), 0, (void *)distance_vector);
     addList(distance_vector, atoi(&id), 0,  (void *)data);
@@ -76,8 +78,10 @@ List *rlink(char id) {
     char size[3];
     while (fscanf(fp, "%s %s %s", origin, destiny, size) != EOF) {
         if (atoi(origin) == atoi(&id) || atoi(destiny) == atoi(&id)) {
-            data = malloc(sizeof(int));
-            *data = atoi(size);
+            data = malloc(sizeof(Data));
+            data->timeout = 15;
+            data->cost = atoi(size);
+            data->parent = atoi(&id);
             addList(distance_vector, atoi(origin) == atoi(&id) ? atoi(destiny) : atoi(origin), atoi(size), (void *)data);
         }
     }

@@ -22,6 +22,12 @@
 
 typedef struct queue Queue;
 
+typedef struct data{
+    int cost;
+    int timeout;
+    int parent;
+}Data;
+
 // Queues Functions
 Queue *buildQueue(int buffer); // cria uma fila de tamanho n
 void enqueue(Queue *queue, Message *message); // insere uma mensagem na fila

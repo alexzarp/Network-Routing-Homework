@@ -1,6 +1,8 @@
 #include "thread.h"
 #include "list.h"
 
+#define INF (int)-2147483648
+
 List *links = NULL;
 int *parents = NULL;
 pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -54,8 +56,8 @@ static void resetLinks(const int self, const int neighbor){
 static void displayNeighborhood(int rid){
     void printer(int id, void *data){
         if(id == rid) return;
-        int value = *((int *) data);
-        printf("%d: %d\n", id, value);
+        Data value = *((Data *) data);
+        printf("%d: %d\n", id, value.cost);
     }
     printf("\n------------------------- Router %d -------------------------\n", rid);
     printf("Neighborhood\n");
@@ -66,6 +68,87 @@ static void displayNeighborhood(int rid){
     walksList(dv, printer);
 
     pthread_mutex_unlock(&link_mutex);
+}
+
+// meu vetor e vetor recebido de algum vizinho
+// compara e muda para o menor custo
+// cria lista de saltos envia ao proximo
+// mata na minha lista quanto na principal
+// node: id do roteador, peso
+// campo para indicar como chegar naquela nodo
+// custo vai reduzindo ate chegar em 0 e encontrar o destino
+static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
+    // meu nodo ja
+    int length(char **v) {
+        int len = sizeof(v)/sizeof(v[0]);
+        return len;
+    }
+    struct tm t;
+    int time = t.tm_sec;
+
+    char **tuples = stringSplit(vectord, "-");
+    int len = length(tuples);
+
+    // como remover o X: se houver
+    for(int i = 0; i < len; i++) {
+        tuples[i] = replaceWord(tuples[i], "(", "");
+        tuples[i] = replaceWord(tuples[i], ")", "");
+    }
+    
+    // menor custo
+    // já possuo minha lista, agora basta biscar a lista dos vizinhos
+    for (int i = 0; i < len; i++) {
+        char **id_cost = stringSplit(tuples[i], ",");
+        int idb = atoi(id_cost[0]);
+        int costb = atoi(id_cost[1]);
+        int bordererCost;
+        
+        Data *temp = getList(l, idb);
+
+        if (temp) { // se ja existe
+            Data *gateway = getList(l, temp->parent);
+            bordererCost = gateway->cost;
+            // se o meu atual e pior ou melhor que o novo
+            // eu sou a primeira posicao
+            if (temp->cost > costb + bordererCost) {
+                temp->cost = costb + bordererCost;
+                temp->timeout = 15;
+                temp->parent = grid;
+            }
+        } else { // se nao existe
+            Data *gateway = getList(l, grid);
+            bordererCost = gateway->cost;
+
+            List *newVD = buildList(1);
+
+            for (int j = 0; j < len; j++) {
+                char **lid_cost = stringSplit(tuples[j], ",");
+                int lidb = atoi(lid_cost[0]);
+                int lcostb = atoi(lid_cost[1]);
+                Data *dtemp = malloc(sizeof(Data));
+                dtemp->cost = lcostb;
+                dtemp->timeout = 15;
+                dtemp->parent = INF;
+                addList(newVD, lidb, (void *)dtemp);
+            }
+            
+            addList(links, idb, (void *)newVD); // lista
+
+            int compareVD(int id, void *data){
+                Data *dvnode = (Data *)getList(newVD, id);
+                return !dvnode ? 1 : 0;
+            }
+
+            List *ret = filterList(l, compareVD);
+
+            if(ret){
+                void updateCurrentVD(int id, void *data){
+                    addList(l, id, data);
+                }
+                walksList(ret, updateCurrentVD);
+            }
+        }
+    }
 }
 
 void *sender(void *config){
@@ -303,8 +386,8 @@ void *gossip(void *config){
 
             void buildGossip(void *acumulator, int id, void *data){
                 CompString *cs = (CompString *) acumulator;
-                int value = *((int *) data);
-                cs->current += snprintf(&cs->string[cs->current], (BUFFER)-cs->current, "(%d,%d)-", id, value);
+                Data value = *((Data *) data);
+                cs->current += snprintf(&cs->string[cs->current], (BUFFER)-cs->current, "(%d,%d)-", id, value.cost);
             }
             //printf("\nGossip: stringtfy distance vector\n");
             reduceList(dv, (void *)aux, buildGossip);
@@ -331,8 +414,6 @@ void *gossip(void *config){
         sleep(TIMEOUT * 2);
     }
 }
-
-#define INF (int)-2147483648
 
 char *replaceWord(const char* s, const char* oldW, const char* newW) { 
     char* result; 
@@ -370,70 +451,17 @@ char *replaceWord(const char* s, const char* oldW, const char* newW) {
     return result; 
 }
 
-// meu vetor e vetor recebido de algum vizinho
-// compara e muda para o menor custo
-// cria lista de saltos envia ao proximo
-// mata na minha lista quanto na principal
-// node: id do roteador, peso
-// campo para indicar como chegar naquela nodo
-// custo vai reduzindo ate chegar em 0 e encontrar o destino
-static void bellmanFordBuilder(List *l, char *vectord) {
-    int length(char **v) {
-        int len = sizeof(v)/sizeof(v[0]);
-        return len;
-    }
-    struct tm t;
-    int time = t.tm_sec;
+void *killer(void *config, List *l) {
+    while (1){
+        pthread_mutex_lock(links);
 
-    char **tuples = stringSplit(vectord, "-");
-    int len = length(tuples);
-
-    // como remover o X: se houver
-    for(int i = 0; i < len; i++) {
-        tuples[i] = replaceWord(tuples[i], "(", "");
-        tuples[i] = replaceWord(tuples[i], ")", "");
-    }
-    
-    // menor custo
-    // já possuo minha lista, agora basta biscar a lista dos vizinhos
-    for (int i = 0; i < len; i++) {
-        char **id_cost = stringSplit(tuples[i], ",");
-        int idb = atoi(id_cost[0]);
-        int costb = atoi(id_cost[1]);
-        int bordererCost = 0;
-
-        Node *mylist = getNode(l, idb); // minha lista
-        Node *distanceV = (Node *)getList(l, idb); // pega a lista da lista
-        if (mylist) { // se ja existe
-            // se o meu atual e pior ou melhor que o novo
-            // eu sou a primeira posicao
-            if (mylist->cost > costb + bordererCost) {
-                mylist->cost = costb + bordererCost;
-                mylist->tomeout = time;
-                distanceV->cost = costb;
-            }
-        } else { // se nao existe
-            List *newVD = buildList(1);
-            for (int j = 0; j < len; j++) {
-                char **lid_cost = stringSplit(tuples[j], ",");
-                int lidb = atoi(lid_cost[0]);
-                int lcostb = atoi(lid_cost[1]);
-                addList(newVD, lidb, lcostb, 0, NULL);
-            } 
-            addList(l, idb, costb + bordererCost, time, (void *)newVD); // lista
-        }
-        
         do {
             if (mylist->timeout < time + 3) { // se nao foi atualizado a um determinado tempo ele mata
                 removeList(l, mylist->id);
                 mylist = mylist->prev;
             } // preciso voltar atras?
         } while ((mylist->next != NULL));
- 
-        free(distanceV);
-        free(mylist);
+
+        sleep(TIMEOUT);
     }
-    // meu custo 
-    // infinito para reoteadores ja conhecidos porem desligados *
-    // evitar loops
 }

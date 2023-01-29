@@ -1,14 +1,7 @@
 #include "list.h"
 
-// struct cost{
-// 	int idpath;
-// 	int cost;
-// };
-
 struct node{
     int id;
-	int cost;
-	int timeout;
     void *data;
     struct node *next;
     struct node *prev;
@@ -34,12 +27,10 @@ static Node *getNode(List *l, int id){
 	return NULL;
 }
 
-void addList(List *l, int id, int cost, int timeout, void *data){
+void addList(List *l, int id, void *data){
 	Node *new;
 	new = malloc(sizeof(*new));
 	new->id = id;
-	new->cost = cost;
-	new->timeout = timeout;
 	new->data = data;
 	new->next = NULL;
 	new->prev = NULL;
@@ -146,9 +137,9 @@ void walksList(List *l, void (*walk)(int, void *)){
 }
 
 // retorna um subconjunto determinado: cumpre um requisito ou nao
-List *filterList(List *l, int (*filter)(void *)){
+List *filterList(List *l, int (*filter)(int, void *)){
   List *temp = buildList(l->type);
-  for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->data)) addList(temp, aux->id, aux->cost, aux->data);
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->id,aux->data)) addList(temp, aux->id, aux->cost, aux->data);
   return temp;
 }
 
