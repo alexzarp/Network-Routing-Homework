@@ -40,4 +40,7 @@ void *pong(void *config);
 // envia o vetor distância para os vizinhos
 void *gossip(void *config);
 
+// controi os vetores distancia com informacoes recebidas do vizinhos
+static void bellmanFordBuilder(List *l, char *vectord);
+
 #endif /*THRD*/

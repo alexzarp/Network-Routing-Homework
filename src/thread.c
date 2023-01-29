@@ -159,7 +159,8 @@ void *packetHandler (void *config) {
 
             if (!strcmp(control_msg[0], "gossip")){
                 printf("\n%s: %s\n", control_msg[1], control_msg[2]);
-                // printf("%s", control_msg[2]);
+                // preciso da lista na posicao correta
+                bellmanFordBuilder(l, control_msg[2]);
                 // aqui captura
             }
         } else{
@@ -376,12 +377,13 @@ char *replaceWord(const char* s, const char* oldW, const char* newW) {
 // node: id do roteador, peso
 // campo para indicar como chegar naquela nodo
 // custo vai reduzindo ate chegar em 0 e encontrar o destino
-static void bellmanFordBuilder(List *l, int myid, char *vectord) {
-    int mycost;
+static void bellmanFordBuilder(List *l, char *vectord) {
     int length(char **v) {
         int len = sizeof(v)/sizeof(v[0]);
         return len;
     }
+    struct tm t;
+    int time = t.tm_sec;
 
     char **tuples = stringSplit(vectord, "-");
     int len = length(tuples);
@@ -393,31 +395,45 @@ static void bellmanFordBuilder(List *l, int myid, char *vectord) {
     }
     
     // menor custo
+    // já possuo minha lista, agora basta biscar a lista dos vizinhos
     for (int i = 0; i < len; i++) {
         char **id_cost = stringSplit(tuples[i], ",");
+        int idb = atoi(id_cost[0]);
+        int costb = atoi(id_cost[1]);
+        int bordererCost = 0;
 
-        Node *aux = getNode(l, id_cost[0]);
-        Node *mynode = getNode(l, myid);
-        if (aux && id_cost[0] == mycost->cost) {
+        Node *mylist = getNode(l, idb); // minha lista
+        Node *distanceV = (Node *)getList(l, idb); // pega a lista da lista
+        if (mylist) { // se ja existe
             // se o meu atual e pior ou melhor que o novo
             // eu sou a primeira posicao
-            if (aux->cost > aoti(id_cost[1]) + mynode->cost) {
-                aux->cost =  aoti(id_cost[1]) + mynode->cost;
+            if (mylist->cost > costb + bordererCost) {
+                mylist->cost = costb + bordererCost;
+                mylist->tomeout = time;
+                distanceV->cost = costb;
             }
-        } else {
-            Node *generic;
-            addList(l, id_cost[0], id_cost[1] + mycost, generic); // depois preciso entender a necessidade de uma lista numa lista
-            free(generic);
+        } else { // se nao existe
+            List *newVD = buildList(1);
+            for (int j = 0; j < len; j++) {
+                char **lid_cost = stringSplit(tuples[j], ",");
+                int lidb = atoi(lid_cost[0]);
+                int lcostb = atoi(lid_cost[1]);
+                addList(newVD, lidb, lcostb, 0, NULL);
+            } 
+            addList(l, idb, costb + bordererCost, time, (void *)newVD); // lista
         }
-        free(aux);
-        free(mynode);
+        
+        do {
+            if (mylist->timeout < time + 3) { // se nao foi atualizado a um determinado tempo ele mata
+                removeList(l, mylist->id);
+                mylist = mylist->prev;
+            } // preciso voltar atras?
+        } while ((mylist->next != NULL));
+ 
+        free(distanceV);
+        free(mylist);
     }
-
-    // infinito para reoteadores ja conhecidos porem desligados
-    for (int i = 0; i < len; i++) {
-        char **id_cost = stringSplit(tuples[i], ",");
-        filterList(l, atoi(id_cost[0]));
-    }
+    // meu custo 
+    // infinito para reoteadores ja conhecidos porem desligados *
+    // evitar loops
 }
-// falta conferir o custo corretamente e atualizar
-// falta matar roteadores sem resposta

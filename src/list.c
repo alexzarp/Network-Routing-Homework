@@ -8,6 +8,7 @@
 struct node{
     int id;
 	int cost;
+	int timeout;
     void *data;
     struct node *next;
     struct node *prev;
@@ -33,11 +34,12 @@ static Node *getNode(List *l, int id){
 	return NULL;
 }
 
-void addList(List *l, int id, int cost, void *data){
+void addList(List *l, int id, int cost, int timeout, void *data){
 	Node *new;
 	new = malloc(sizeof(*new));
 	new->id = id;
 	new->cost = cost;
+	new->timeout = timeout;
 	new->data = data;
 	new->next = NULL;
 	new->prev = NULL;

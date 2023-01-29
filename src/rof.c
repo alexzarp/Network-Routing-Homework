@@ -68,8 +68,8 @@ List *rlink(char id) {
     int *data = malloc(sizeof(int));
     *data = 0;
 
-    addList(matrix, atoi(&id), (void *)distance_vector);
-    addList(distance_vector, atoi(&id), (void *)data);
+    addList(matrix, atoi(&id), 0, (void *)distance_vector);
+    addList(distance_vector, atoi(&id), 0,  (void *)data);
 
     char origin[2];
     char destiny[2];
