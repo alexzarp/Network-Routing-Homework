@@ -452,6 +452,10 @@ char *replaceWord(const char* s, const char* oldW, const char* newW) {
 }
 
 void *killer(void *config, List *l) {
+    typedef struct {
+        int id;
+        
+    }Local;
     while (1){
         pthread_mutex_lock(links);
 
