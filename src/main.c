@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     configs[4] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
     configs[5] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, NULL, NULL);
     configs[6] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
-    configs[7] = buildThreadConfig((int)argv[1][0] - 48, s, NULL, NULL, NULL);
+    configs[7] = buildThreadConfig((int)argv[1][0] - 48, s, srouter, output, NULL);
 
     // iniciando threads
     pthread_create(&tpid[0], NULL, receiver, (void*) configs[0]);

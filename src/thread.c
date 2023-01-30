@@ -451,21 +451,25 @@ char *replaceWord(const char* s, const char* oldW, const char* newW) {
     return result; 
 }
 
-void *killer(void *config, List *l) {
-    typedef struct {
-        int id;
-        
-    }Local;
+void *killer(void *config) {
+    ThreadConfig *att = (ThreadConfig *)config;
+
     while (1){
         pthread_mutex_lock(links);
+        
+        List *dv = (List *) getList(links, att->rid);
 
-        do {
-            if (mylist->timeout < time + 3) { // se nao foi atualizado a um determinado tempo ele mata
-                removeList(l, mylist->id);
-                mylist = mylist->prev;
-            } // preciso voltar atras?
-        } while ((mylist->next != NULL));
+        void decrement(int id, void *data){
+            Data *aux = (Data *) data;
+            aux->timeout--;
+        }
+        walksList(dv, decrement);
 
+        void remover(int id, void *data) {
+
+        }
+
+        pthread_mutex_unlock(links);
         sleep(TIMEOUT);
     }
 }
