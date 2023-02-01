@@ -118,7 +118,7 @@ int removeList(List *l, int id){
 
 void *getList(List *l, int id){
     Node *n = getNode(l,id);
-		return n ? n->data : NULL;
+	return n ? n->data : NULL;
 }
 
 void freeList(List *l){

@@ -182,20 +182,20 @@ static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
 }
 
 void *sender(void *config){
-    printf("\nSender: Load arguments\n");
+    //printf("\nSender: Load arguments\n");
     struct sockaddr_in si_other;
     int slen = sizeof(si_other);
     ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
     while(1){
-        printf("\nSender: Get message from output queue\n");
+        //printf("\nSender: Get message from output queue\n");
         Message *msg;
         memset(buffer,'\0', BUFFER);
         memset((char *) &si_other, 0, sizeof(si_other));
         msg = dequeue(arr->outputQueue);
 
-        printf("\nSender: Map message to string\n");
+        //printf("\nSender: Map message to string\n");
         char type[2];
         snprintf(type, 2,"%d", msg->type);
         strcat(buffer, type);
@@ -206,7 +206,7 @@ void *sender(void *config){
         strcat(buffer, "|");
         strcat(buffer, (char *)msg->payload);
 
-        printf("\nSender: Load destiny socket informations\n");
+        //printf("\nSender: Load destiny socket informations\n");
         if(!strcmp((char *)msg->destiny, "127.0.0.1")){
             free(msg);
             continue;
@@ -218,7 +218,7 @@ void *sender(void *config){
         {
             die("sender inet_aton()");
         }
-        printf("\nSender: Send message\n");
+        //printf("\nSender: Send message\n");
         if (sendto(arr->socket, buffer, strlen(buffer), 0, (struct sockaddr *)&si_other, slen) == -1)
         {
             die("sender sento");
@@ -228,22 +228,22 @@ void *sender(void *config){
 }
 
 void *receiver(void *config){
-    printf("\nReceiver: Load arguments\n");
+    //printf("\nReceiver: Load arguments\n");
     struct sockaddr_in sin_other;
     int slen = sizeof(sin_other);
     ThreadConfig *arr = (ThreadConfig *)config;
 
     while(1){
         char *buffer = malloc(sizeof(char) * BUFFER);
-        printf("\nReceiver: Wait new messages\n");
+        //printf("\nReceiver: Wait new messages\n");
         if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)&sin_other, &slen)) == -1)
         {
             die("recvfrom");
         }
-        printf("\nReceiver: Load incomming message\n");
+        //printf("\nReceiver: Load incomming message\n");
         char **result = stringSplit(buffer, "|");
         Message *msg  = buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen);
-        printf("\nReceiver: Enqueue message in input queue\n");
+        //printf("\nReceiver: Enqueue message in input queue\n");
         enqueue(arr->inputQueue, msg);
     }
 }
@@ -251,31 +251,37 @@ void *receiver(void *config){
 void *packetHandler (void *config) {
     printf("\nPH: Load arguments\n");
     ThreadConfig *arr = (ThreadConfig *)config;
+
+    pthread_mutex_lock(&link_mutex);
     List *myrouter = getList(links, arr->rid);
+    pthread_mutex_unlock(&link_mutex);
+
     while(1){
         printf("\nPH: Get message from input queue\n");
         Message *msg = dequeue(arr->inputQueue);
-        //displayMessage(msg);
         char **adress = stringSplit(msg->destiny, ":");
         char port[6];
 
         snprintf(port, 6,"%d", 25000+arr->rid);
 
         printf("\nPH: Check if current route is his destiny\n");
-        if(!strcmp(adress[0], "127.0.0.1") && !strcmp(adress[1], port) && msg->type){
-            char **adress = stringSplit(msg->root, ":");
-            printf("\n%d: %s\n", atoi(adress[1]) - 25000,(char *)msg->payload);
-        }else if (!msg->type){
-            char **control_msg = stringSplit((char *)msg->payload, " ");
-            if (!strcmp(control_msg[0], "ping")){
-                setStatus(arr->srouter, atoi(control_msg[1]), 1);
-            }
+        if(!strcmp(adress[0], "127.0.0.1") && !strcmp(adress[1], port)){
+            if (msg->type){
+                char **adress = stringSplit(msg->root, ":");
+                printf("\n%d: %s\n", atoi(adress[1]) - 25000,(char *)msg->payload);
+            } else {
+                char **control_msg = stringSplit((char *)msg->payload, " ");
+                if (!strcmp(control_msg[0], "ping")){
+                    setStatus(arr->srouter, atoi(control_msg[1]), 1);
+                }
 
-            if (!strcmp(control_msg[0], "gossip")){
-                printf("\n%s: %s\n", control_msg[1], control_msg[2]);
-                // preciso da lista na posicao correta
-                bellmanFordBuilder(arr->rid, atoi(control_msg[1]), myrouter, control_msg[2]);
-                // aqui captura
+                if (!strcmp(control_msg[0], "gossip")){
+                    // preciso da lista na posicao correta
+                    pthread_mutex_lock(&link_mutex);
+                    bellmanFordBuilder(arr->rid, atoi(control_msg[1]), myrouter, control_msg[2]);
+                    pthread_mutex_unlock(&link_mutex);
+                    // aqui captura
+                }
             }
         } else{
             printf("\nPH: Enqueue msg in output queue\n");
@@ -285,7 +291,7 @@ void *packetHandler (void *config) {
 }
 
 void *terminal (void *config) {
-    system("clear");
+    //system("clear");
     printf("\nTerminal: Load variables\n");
     // starting variables
     ThreadConfig *att = (ThreadConfig *)config;
@@ -314,7 +320,7 @@ void *terminal (void *config) {
         getchar();
         fgets(buffer, BUFFER, stdin);
         buffer[strcspn(buffer, "\n")] = '\0';
-        system("clear");
+        //system("clear");
 
         pthread_mutex_lock(&link_mutex);
         printf("\nTerminal: Check if selected route is reacheble\n");
