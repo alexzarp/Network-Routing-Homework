@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     pthread_create(&tpid[4], NULL, ping, (void*) configs[4]);
     pthread_create(&tpid[5], NULL, pong, (void*) configs[5]);
     pthread_create(&tpid[6], NULL, gossip, (void*) configs[6]);
-    pthread_create(&tpid[7], NULL, killer, (void*) configs[7]);
+    //pthread_create(&tpid[7], NULL, killer, (void*) configs[7]);
 
     // join na thread de terminal
     pthread_join(tpid[3], NULL);

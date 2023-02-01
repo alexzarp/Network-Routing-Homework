@@ -77,6 +77,15 @@ static char *replaceWord(const char* s, const char* oldW, const char* newW) {
     return result; 
 }
 
+static int countChar(char *string, char caracter){
+    int i = 0, count=0;
+    while(string[i] != '\0'){
+        if (string[i] == caracter) count++;
+        i++;
+    }
+    return count;
+}
+
 static void resetLinks(const int self, const int neighbor){
     if(!links) return;
 
@@ -107,15 +116,8 @@ static void displayNeighborhood(int rid){
 }
 
 static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
-    // meu nodo ja
-    
-    int length(char **v) {
-        int len = sizeof(v)/sizeof(v[0]);
-        return len;
-    }
-
     char **tuples = stringSplit(vectord, "-");
-    int len = length(tuples);
+    int len = countChar(vectord, '-') + 1;
 
     // como remover o X: se houver
     for(int i = 0; i < len; i++) {
@@ -167,7 +169,7 @@ static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
                 return !dvnode ? 1 : 0;
             }
 
-            List *ret = filterList(l, compareVD);
+            List *ret = (List *)filterList(l, compareVD);
 
             if(ret){
                 void updateCurrentVD(int id, void *data){
@@ -180,20 +182,20 @@ static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
 }
 
 void *sender(void *config){
-    //printf("\nSender: Load arguments\n");
+    printf("\nSender: Load arguments\n");
     struct sockaddr_in si_other;
     int slen = sizeof(si_other);
     ThreadConfig *arr = (ThreadConfig *)config;
     char buffer[BUFFER];
 
     while(1){
-        //printf("\nSender: Get message from output queue\n");
+        printf("\nSender: Get message from output queue\n");
         Message *msg;
         memset(buffer,'\0', BUFFER);
         memset((char *) &si_other, 0, sizeof(si_other));
         msg = dequeue(arr->outputQueue);
 
-        //printf("\nSender: Map message to string\n");
+        printf("\nSender: Map message to string\n");
         char type[2];
         snprintf(type, 2,"%d", msg->type);
         strcat(buffer, type);
@@ -204,7 +206,7 @@ void *sender(void *config){
         strcat(buffer, "|");
         strcat(buffer, (char *)msg->payload);
 
-        //printf("\nSender: Load destiny socket informations\n");
+        printf("\nSender: Load destiny socket informations\n");
         if(!strcmp((char *)msg->destiny, "127.0.0.1")){
             free(msg);
             continue;
@@ -216,7 +218,7 @@ void *sender(void *config){
         {
             die("sender inet_aton()");
         }
-        //printf("\nSender: Send message\n");
+        printf("\nSender: Send message\n");
         if (sendto(arr->socket, buffer, strlen(buffer), 0, (struct sockaddr *)&si_other, slen) == -1)
         {
             die("sender sento");
@@ -226,32 +228,32 @@ void *sender(void *config){
 }
 
 void *receiver(void *config){
-    //printf("\nReceiver: Load arguments\n");
+    printf("\nReceiver: Load arguments\n");
     struct sockaddr_in sin_other;
     int slen = sizeof(sin_other);
     ThreadConfig *arr = (ThreadConfig *)config;
 
     while(1){
         char *buffer = malloc(sizeof(char) * BUFFER);
-        //printf("\nReceiver: Wait new messages\n");
+        printf("\nReceiver: Wait new messages\n");
         if ((recvfrom(arr->socket, buffer, BUFFER, 0, (struct sockaddr *)&sin_other, &slen)) == -1)
         {
             die("recvfrom");
         }
-        //printf("\nReceiver: Load incomming message\n");
+        printf("\nReceiver: Load incomming message\n");
         char **result = stringSplit(buffer, "|");
         Message *msg  = buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen);
-        //printf("\nReceiver: Enqueue message in input queue\n");
+        printf("\nReceiver: Enqueue message in input queue\n");
         enqueue(arr->inputQueue, msg);
     }
 }
 
 void *packetHandler (void *config) {
-    //printf("\nPH: Load arguments\n");
+    printf("\nPH: Load arguments\n");
     ThreadConfig *arr = (ThreadConfig *)config;
     List *myrouter = getList(links, arr->rid);
     while(1){
-        //printf("\nPH: Get message from input queue\n");
+        printf("\nPH: Get message from input queue\n");
         Message *msg = dequeue(arr->inputQueue);
         //displayMessage(msg);
         char **adress = stringSplit(msg->destiny, ":");
@@ -259,7 +261,7 @@ void *packetHandler (void *config) {
 
         snprintf(port, 6,"%d", 25000+arr->rid);
 
-        //printf("\nPH: Check if current route is his destiny\n");
+        printf("\nPH: Check if current route is his destiny\n");
         if(!strcmp(adress[0], "127.0.0.1") && !strcmp(adress[1], port) && msg->type){
             char **adress = stringSplit(msg->root, ":");
             printf("\n%d: %s\n", atoi(adress[1]) - 25000,(char *)msg->payload);
@@ -276,7 +278,7 @@ void *packetHandler (void *config) {
                 // aqui captura
             }
         } else{
-            //printf("\nPH: Enqueue msg in output queue\n");
+            printf("\nPH: Enqueue msg in output queue\n");
             enqueue(arr->outputQueue, msg);
         }
     }
@@ -284,14 +286,14 @@ void *packetHandler (void *config) {
 
 void *terminal (void *config) {
     system("clear");
-    //printf("\nTerminal: Load variables\n");
+    printf("\nTerminal: Load variables\n");
     // starting variables
     ThreadConfig *att = (ThreadConfig *)config;
     char buffer[BUFFER];
     // mapping links to a adj matrix
     char rid = att->rid + 48;
 
-    //printf("\nTerminal: Init links matrix\n");
+    printf("\nTerminal: Init links matrix\n");
     pthread_mutex_lock(&link_mutex);
     links = rlink(rid);
     List *dv = (List *)getList(links, att->rid);
@@ -315,16 +317,16 @@ void *terminal (void *config) {
         system("clear");
 
         pthread_mutex_lock(&link_mutex);
-        //printf("\nTerminal: Check if selected route is reacheble\n");
+        printf("\nTerminal: Check if selected route is reacheble\n");
         if(drouter != -1 && getList(dv, drouter)){
-            //printf("\nTerminal: Load message\n");
+            printf("\nTerminal: Load message\n");
             pthread_mutex_unlock(&link_mutex);
             char root[16];
             char destiny[16];
 
             snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
             snprintf(destiny, 16,"127.0.0.1:%d", 25000 + drouter);
-            //printf("\nTerminal: Enqueue message to output queue\n");
+            printf("\nTerminal: Enqueue message to output queue\n");
             enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
         }else{
             pthread_mutex_unlock(&link_mutex);
@@ -340,13 +342,13 @@ void *terminal (void *config) {
 }
 
 void *ping(void *config){
-    //printf("\nPing: Load Configs and Couting Router in Network\n");
+    printf("\nPing: Load Configs and Couting Router in Network\n");
     ThreadConfig *att = (ThreadConfig *)config;
 
     while(1){
-        //printf("\nPing: Lock link mutex\n");
+        printf("\nPing: Lock link mutex\n");
         pthread_mutex_lock(&link_mutex);
-        //printf("\nPing: Check if link matrix\ is null\n");
+        printf("\nPing: Check if link matrix is null\n");
         if(links){
             void sendPing(int id, void *data){
                 if(id == att->rid) return;
@@ -354,23 +356,23 @@ void *ping(void *config){
                 char *destiny = malloc(sizeof(char) * 16);
                 char *ping = malloc(sizeof(char) * 7);
 
-                //printf("\nPing: Build ping message\n");
+                printf("\nPing: Build ping message\n");
 				snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
 				snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(ping, 7,"ping %d", att->rid);
 				Message *msg = buildMessage(0, root, destiny, (void *)ping, 7);
 
-                //printf("\nPing: Enqueue ping message in ouput queue\n");
+                printf("\nPing: Enqueue ping message in ouput queue\n");
 
                 enqueue(att->outputQueue, msg);
             }
             List *dv = (List *) getList(links, att->rid);
-            //printf("\nPing: Find Neibors\n");
+            printf("\nPing: Find Neibors\n");
             walksList(dv, sendPing);
         }
-        //printf("\nPing: Unlock link mutex\n");
+        printf("\nPing: Unlock link mutex\n");
         pthread_mutex_unlock(&link_mutex);
-        //printf("\nPing: Sleep for 5 seconds\n");
+        printf("\nPing: Sleep for 5 seconds\n");
 		sleep(TIMEOUT);
     }
 }
@@ -399,7 +401,7 @@ void *gossip(void *config){
     ThreadConfig *att = (ThreadConfig *)config;
     while(1){
         pthread_mutex_lock(&link_mutex);
-        //printf("\nGossip: Check if link matrix is not null\n");
+        printf("\nGossip: Check if link matrix is not null\n");
         if(links){
             int gtam = BUFFER + 10;
 
@@ -418,11 +420,11 @@ void *gossip(void *config){
                 Data value = *((Data *) data);
                 cs->current += snprintf(&cs->string[cs->current], (BUFFER)-cs->current, "(%d,%d)-", id, value.cost);
             }
-            //printf("\nGossip: stringtfy distance vector\n");
+            printf("\nGossip: stringtfy distance vector\n");
             reduceList(dv, (void *)aux, buildGossip);
             aux->string[aux->current-1] = '\0';
             
-            //printf("\nGossip: Build gossip message\n");
+            printf("\nGossip: Build gossip message\n");
             void sendGossip(int id, void *data){
                 if (id == att->rid) return;
                 char *root = calloc(16, sizeof(char));
@@ -433,12 +435,12 @@ void *gossip(void *config){
                 snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(gossip, gtam,"gossip %d %s", att->rid, aux->string);
                 Message *msg = buildMessage(0, root, destiny, (void *)gossip, BUFFER);
-                //printf("\nGossip: Enqueue gossip message in ouput queue\n");
+                printf("\nGossip: Enqueue gossip message in ouput queue\n");
                 enqueue(att->outputQueue, msg);
             }
             walksList(dv, sendGossip);
         }
-        //printf("\nGossip: Unlock link mutex\n");
+        printf("\nGossip: Unlock link mutex\n");
         pthread_mutex_unlock(&link_mutex);
         sleep(TIMEOUT * 2);
     }
