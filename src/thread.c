@@ -108,6 +108,7 @@ static void displayNeighborhood(int rid){
 
 static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
     // meu nodo ja
+    
     int length(char **v) {
         int len = sizeof(v)/sizeof(v[0]);
         return len;
