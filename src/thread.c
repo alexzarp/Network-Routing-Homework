@@ -104,7 +104,7 @@ static void displayNeighborhood(int rid){
         Data value = *((Data *) data);
         printf("%d: %d\n", id, value.cost);
     }
-    printf("\n------------------------- Router %d -------------------------\n", rid);
+    //printf("\n------------------------- Router %d -------------------------\n", rid);
     printf("Neighborhood\n");
 
     pthread_mutex_lock(&link_mutex);
@@ -115,70 +115,74 @@ static void displayNeighborhood(int rid){
     pthread_mutex_unlock(&link_mutex);
 }
 
-static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
-    char **tuples = stringSplit(vectord, "-");
-    int len = countChar(vectord, '-') + 1;
+static void bellmanFordBuilder(int rid, int grid, List *l, const char *vectord) {
+    char temp_string[BUFFER];
+    snprintf(temp_string, BUFFER, "%s", vectord);
+    int len = countChar(temp_string, '-') + 1;
+    char **tuples = stringSplit(temp_string, "-");
 
     // como remover o X: se houver
     for(int i = 0; i < len; i++) {
         tuples[i] = replaceWord(tuples[i], "(", "");
         tuples[i] = replaceWord(tuples[i], ")", "");
     }
+
+    List *newVD = buildList(1);
     
     // menor custo
     // já possuo minha lista, agora basta biscar a lista dos vizinhos
     for (int i = 0; i < len; i++) {
+        //printf("BFD: load data from tuple %d\n", i);
         char **id_cost = stringSplit(tuples[i], ",");
         int idb = atoi(id_cost[0]);
         int costb = atoi(id_cost[1]);
+
+        Data *dtemp = malloc(sizeof(Data));
+        dtemp->cost = costb;
+        dtemp->timeout = 15;
+        dtemp->parent = INF;
+
         int bordererCost;
+        //printf("BFD: (%d,%d)\n", idb, costb);
         
         Data *temp = getList(l, idb);
-
+        //printf("BFD: Check if router exist in dv\n");
         if (temp) { // se ja existe
-            Data *gateway = getList(l, temp->parent);
-            bordererCost = gateway->cost;
-            // se o meu atual e pior ou melhor que o novo
-            // eu sou a primeira posicao
-            if (temp->cost > costb + bordererCost) {
-                temp->cost = costb + bordererCost;
+            //printf("BFD: if exists, get the router gateway cost\n");
+            if(temp->parent != -1){
+                Data *gateway = getList(l, temp->parent);
+                bordererCost = gateway->cost;
+                // printf("BFD: gateway (%d,%d)\n", temp->parent, bordererCost);
+                // se o meu atual e pior ou melhor que o novo
+                // eu sou a primeira posicao
+                // printf("BFD: check if new cost is lower\n");
+                if (costb && temp->cost > costb + bordererCost) {
+                    // printf("BFD: update router cost,parent and reset timeout\n");
+                    temp->cost = costb + bordererCost;
+                    temp->parent = grid;
+                }
                 temp->timeout = 15;
-                temp->parent = grid;
             }
         } else { // se nao existe
+            // printf("BFD: if not exists, get dv sender as parent\n");
             Data *gateway = getList(l, grid);
             bordererCost = gateway->cost;
 
-            List *newVD = buildList(1);
+            // printf("BFD: adding unknow routers\n");
 
-            for (int j = 0; j < len; j++) {
-                char **lid_cost = stringSplit(tuples[j], ",");
-                int lidb = atoi(lid_cost[0]);
-                int lcostb = atoi(lid_cost[1]);
-                Data *dtemp = malloc(sizeof(Data));
-                dtemp->cost = lcostb;
-                dtemp->timeout = 15;
-                dtemp->parent = INF;
-                addList(newVD, lidb, (void *)dtemp);
-            }
-            
-            addList(links, idb, (void *)newVD); // lista
-
-            int compareVD(int id, void *data){
-                Data *dvnode = (Data *)getList(newVD, id);
-                return !dvnode ? 1 : 0;
-            }
-
-            List *ret = (List *)filterList(l, compareVD);
-
-            if(ret){
-                void updateCurrentVD(int id, void *data){
-                    addList(l, id, data);
-                }
-                walksList(ret, updateCurrentVD);
-            }
+            Data *new = malloc(sizeof(Data));
+            new->cost = costb + bordererCost;
+            new->timeout = 15;
+            new->parent = grid;
+            // printf("BFD: (%d,%d) has add to dv\n",idb, costb);
+            addList(l, idb, (void *)new);   
         }
+        
+        addList(newVD, idb, (void *)dtemp);
     }
+    List *griddv = (List *) getList(links, grid);
+    if (griddv) removeList(links, grid);
+    addList(links, grid, (void *)newVD); // lista
 }
 
 void *sender(void *config){
@@ -249,7 +253,7 @@ void *receiver(void *config){
 }
 
 void *packetHandler (void *config) {
-    printf("\nPH: Load arguments\n");
+    //printf("\nPH: Load arguments\n");
     ThreadConfig *arr = (ThreadConfig *)config;
 
     pthread_mutex_lock(&link_mutex);
@@ -257,14 +261,14 @@ void *packetHandler (void *config) {
     pthread_mutex_unlock(&link_mutex);
 
     while(1){
-        printf("\nPH: Get message from input queue\n");
+        //printf("\nPH: Get message from input queue\n");
         Message *msg = dequeue(arr->inputQueue);
         char **adress = stringSplit(msg->destiny, ":");
         char port[6];
 
         snprintf(port, 6,"%d", 25000+arr->rid);
 
-        printf("\nPH: Check if current route is his destiny\n");
+        //printf("\nPH: Check if current route is his destiny\n");
         if(!strcmp(adress[0], "127.0.0.1") && !strcmp(adress[1], port)){
             if (msg->type){
                 char **adress = stringSplit(msg->root, ":");
@@ -276,6 +280,7 @@ void *packetHandler (void *config) {
                 }
 
                 if (!strcmp(control_msg[0], "gossip")){
+                    printf("%s: %s\n", control_msg[1], control_msg[2]);
                     // preciso da lista na posicao correta
                     pthread_mutex_lock(&link_mutex);
                     bellmanFordBuilder(arr->rid, atoi(control_msg[1]), myrouter, control_msg[2]);
@@ -284,7 +289,7 @@ void *packetHandler (void *config) {
                 }
             }
         } else{
-            printf("\nPH: Enqueue msg in output queue\n");
+            //printf("\nPH: Enqueue msg in output queue\n");
             enqueue(arr->outputQueue, msg);
         }
     }
@@ -292,14 +297,14 @@ void *packetHandler (void *config) {
 
 void *terminal (void *config) {
     //system("clear");
-    printf("\nTerminal: Load variables\n");
+    //printf("\nTerminal: Load variables\n");
     // starting variables
     ThreadConfig *att = (ThreadConfig *)config;
     char buffer[BUFFER];
     // mapping links to a adj matrix
     char rid = att->rid + 48;
 
-    printf("\nTerminal: Init links matrix\n");
+    //printf("\nTerminal: Init links matrix\n");
     pthread_mutex_lock(&link_mutex);
     links = rlink(rid);
     List *dv = (List *)getList(links, att->rid);
@@ -323,16 +328,16 @@ void *terminal (void *config) {
         //system("clear");
 
         pthread_mutex_lock(&link_mutex);
-        printf("\nTerminal: Check if selected route is reacheble\n");
+        //printf("\nTerminal: Check if selected route is reacheble\n");
         if(drouter != -1 && getList(dv, drouter)){
-            printf("\nTerminal: Load message\n");
+            //printf("\nTerminal: Load message\n");
             pthread_mutex_unlock(&link_mutex);
             char root[16];
             char destiny[16];
 
             snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
             snprintf(destiny, 16,"127.0.0.1:%d", 25000 + drouter);
-            printf("\nTerminal: Enqueue message to output queue\n");
+            //printf("\nTerminal: Enqueue message to output queue\n");
             enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
         }else{
             pthread_mutex_unlock(&link_mutex);
@@ -348,13 +353,13 @@ void *terminal (void *config) {
 }
 
 void *ping(void *config){
-    printf("\nPing: Load Configs and Couting Router in Network\n");
+    //printf("\nPing: Load Configs and Couting Router in Network\n");
     ThreadConfig *att = (ThreadConfig *)config;
 
     while(1){
-        printf("\nPing: Lock link mutex\n");
+        //printf("\nPing: Lock link mutex\n");
         pthread_mutex_lock(&link_mutex);
-        printf("\nPing: Check if link matrix is null\n");
+        //printf("\nPing: Check if link matrix is null\n");
         if(links){
             void sendPing(int id, void *data){
                 if(id == att->rid) return;
@@ -362,23 +367,23 @@ void *ping(void *config){
                 char *destiny = malloc(sizeof(char) * 16);
                 char *ping = malloc(sizeof(char) * 7);
 
-                printf("\nPing: Build ping message\n");
+                //printf("\nPing: Build ping message\n");
 				snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
 				snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(ping, 7,"ping %d", att->rid);
 				Message *msg = buildMessage(0, root, destiny, (void *)ping, 7);
 
-                printf("\nPing: Enqueue ping message in ouput queue\n");
+                //printf("\nPing: Enqueue ping message in ouput queue\n");
 
                 enqueue(att->outputQueue, msg);
             }
             List *dv = (List *) getList(links, att->rid);
-            printf("\nPing: Find Neibors\n");
+            //printf("\nPing: Find Neibors\n");
             walksList(dv, sendPing);
         }
-        printf("\nPing: Unlock link mutex\n");
+        //printf("\nPing: Unlock link mutex\n");
         pthread_mutex_unlock(&link_mutex);
-        printf("\nPing: Sleep for 5 seconds\n");
+        //printf("\nPing: Sleep for 5 seconds\n");
 		sleep(TIMEOUT);
     }
 }
@@ -407,7 +412,7 @@ void *gossip(void *config){
     ThreadConfig *att = (ThreadConfig *)config;
     while(1){
         pthread_mutex_lock(&link_mutex);
-        printf("\nGossip: Check if link matrix is not null\n");
+        //printf("\nGossip: Check if link matrix is not null\n");
         if(links){
             int gtam = BUFFER + 10;
 
@@ -426,11 +431,11 @@ void *gossip(void *config){
                 Data value = *((Data *) data);
                 cs->current += snprintf(&cs->string[cs->current], (BUFFER)-cs->current, "(%d,%d)-", id, value.cost);
             }
-            printf("\nGossip: stringtfy distance vector\n");
+            //printf("\nGossip: stringtfy distance vector\n");
             reduceList(dv, (void *)aux, buildGossip);
             aux->string[aux->current-1] = '\0';
             
-            printf("\nGossip: Build gossip message\n");
+            //printf("\nGossip: Build gossip message\n");
             void sendGossip(int id, void *data){
                 if (id == att->rid) return;
                 char *root = calloc(16, sizeof(char));
@@ -441,12 +446,12 @@ void *gossip(void *config){
                 snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(gossip, gtam,"gossip %d %s", att->rid, aux->string);
                 Message *msg = buildMessage(0, root, destiny, (void *)gossip, BUFFER);
-                printf("\nGossip: Enqueue gossip message in ouput queue\n");
+                //printf("\nGossip: Enqueue gossip message in ouput queue\n");
                 enqueue(att->outputQueue, msg);
             }
             walksList(dv, sendGossip);
         }
-        printf("\nGossip: Unlock link mutex\n");
+        //printf("\nGossip: Unlock link mutex\n");
         pthread_mutex_unlock(&link_mutex);
         sleep(TIMEOUT * 2);
     }
@@ -460,6 +465,7 @@ void *killer(void *config) {
         pthread_mutex_lock(&link_mutex);
         
         void decrement(int id, void *data){
+            if(att->rid == id) return;
             Data *aux = (Data *) data;
             aux->timeout--;
         }
@@ -467,9 +473,11 @@ void *killer(void *config) {
         walksList(dv, decrement);
 
         void remover(int id, void *data) {
+            if(att->rid == id) return;
             Data *aux = (Data *) data;
             if (!aux->timeout) {
                 removeList(dv, att->rid);
+                printf("Killer: Removing %d\n", id);
             }
         }
 
