@@ -70,8 +70,8 @@ List *rlink(char id) {
     data->cost = 0;
     data->parent = -1;
 
-    addList(matrix, atoi(&id), 0, (void *)distance_vector);
-    addList(distance_vector, atoi(&id), 0,  (void *)data);
+    addList(matrix, atoi(&id), (void *)distance_vector);
+    addList(distance_vector, atoi(&id), (void *)data);
 
     char origin[2];
     char destiny[2];
@@ -82,7 +82,7 @@ List *rlink(char id) {
             data->timeout = 15;
             data->cost = atoi(size);
             data->parent = atoi(&id);
-            addList(distance_vector, atoi(origin) == atoi(&id) ? atoi(destiny) : atoi(origin), atoi(size), (void *)data);
+            addList(distance_vector, atoi(origin) == atoi(&id) ? atoi(destiny) : atoi(origin), (void *)data);
         }
     }
 

@@ -41,6 +41,42 @@ static char **stringSplit(char *payload, const char *sep){
     return result;
 }
 
+static char *replaceWord(const char* s, const char* oldW, const char* newW) { 
+    char* result; 
+    int i, cnt = 0; 
+    int newWlen = strlen(newW); 
+    int oldWlen = strlen(oldW); 
+  
+    // Counting the number of times old word 
+    // occur in the string 
+    for (i = 0; s[i] != '\0'; i++) { 
+        if (strstr(&s[i], oldW) == &s[i]) { 
+            cnt++; 
+  
+            // Jumping to index after the old word. 
+            i += oldWlen - 1; 
+        } 
+    } 
+  
+    // Making new string of enough length 
+    result = (char*)malloc(i + cnt * (newWlen - oldWlen) + 1); 
+  
+    i = 0; 
+    while (*s) { 
+        // compare the substring with the result 
+        if (strstr(s, oldW) == s) { 
+            strcpy(&result[i], newW); 
+            i += newWlen; 
+            s += oldWlen; 
+        } 
+        else
+            result[i++] = *s++; 
+    } 
+  
+    result[i] = '\0'; 
+    return result; 
+}
+
 static void resetLinks(const int self, const int neighbor){
     if(!links) return;
 
@@ -70,21 +106,12 @@ static void displayNeighborhood(int rid){
     pthread_mutex_unlock(&link_mutex);
 }
 
-// meu vetor e vetor recebido de algum vizinho
-// compara e muda para o menor custo
-// cria lista de saltos envia ao proximo
-// mata na minha lista quanto na principal
-// node: id do roteador, peso
-// campo para indicar como chegar naquela nodo
-// custo vai reduzindo ate chegar em 0 e encontrar o destino
 static void bellmanFordBuilder(int rid, int grid, List *l, char *vectord) {
     // meu nodo ja
     int length(char **v) {
         int len = sizeof(v)/sizeof(v[0]);
         return len;
     }
-    struct tm t;
-    int time = t.tm_sec;
 
     char **tuples = stringSplit(vectord, "-");
     int len = length(tuples);
@@ -221,6 +248,7 @@ void *receiver(void *config){
 void *packetHandler (void *config) {
     //printf("\nPH: Load arguments\n");
     ThreadConfig *arr = (ThreadConfig *)config;
+    List *myrouter = getList(links, arr->rid);
     while(1){
         //printf("\nPH: Get message from input queue\n");
         Message *msg = dequeue(arr->inputQueue);
@@ -243,7 +271,7 @@ void *packetHandler (void *config) {
             if (!strcmp(control_msg[0], "gossip")){
                 printf("\n%s: %s\n", control_msg[1], control_msg[2]);
                 // preciso da lista na posicao correta
-                bellmanFordBuilder(l, control_msg[2]);
+                bellmanFordBuilder(arr->rid, atoi(control_msg[1]), myrouter, control_msg[2]);
                 // aqui captura
             }
         } else{
@@ -317,7 +345,7 @@ void *ping(void *config){
     while(1){
         //printf("\nPing: Lock link mutex\n");
         pthread_mutex_lock(&link_mutex);
-        //printf("\nPing: Check if link matrix is null\n");
+        //printf("\nPing: Check if link matrix\ is null\n");
         if(links){
             void sendPing(int id, void *data){
                 if(id == att->rid) return;
@@ -415,61 +443,30 @@ void *gossip(void *config){
     }
 }
 
-char *replaceWord(const char* s, const char* oldW, const char* newW) { 
-    char* result; 
-    int i, cnt = 0; 
-    int newWlen = strlen(newW); 
-    int oldWlen = strlen(oldW); 
-  
-    // Counting the number of times old word 
-    // occur in the string 
-    for (i = 0; s[i] != '\0'; i++) { 
-        if (strstr(&s[i], oldW) == &s[i]) { 
-            cnt++; 
-  
-            // Jumping to index after the old word. 
-            i += oldWlen - 1; 
-        } 
-    } 
-  
-    // Making new string of enough length 
-    result = (char*)malloc(i + cnt * (newWlen - oldWlen) + 1); 
-  
-    i = 0; 
-    while (*s) { 
-        // compare the substring with the result 
-        if (strstr(s, oldW) == s) { 
-            strcpy(&result[i], newW); 
-            i += newWlen; 
-            s += oldWlen; 
-        } 
-        else
-            result[i++] = *s++; 
-    } 
-  
-    result[i] = '\0'; 
-    return result; 
-}
-
 void *killer(void *config) {
     ThreadConfig *att = (ThreadConfig *)config;
 
+    List *dv = (List *) getList(links, att->rid);
     while (1){
-        pthread_mutex_lock(links);
+        pthread_mutex_lock(&link_mutex);
         
-        List *dv = (List *) getList(links, att->rid);
-
         void decrement(int id, void *data){
             Data *aux = (Data *) data;
             aux->timeout--;
         }
+
         walksList(dv, decrement);
 
         void remover(int id, void *data) {
-
+            Data *aux = (Data *) data;
+            if (!aux->timeout) {
+                removeList(dv, att->rid);
+            }
         }
 
-        pthread_mutex_unlock(links);
+        walksList(dv, remover);
+
+        pthread_mutex_unlock(&link_mutex);
         sleep(TIMEOUT);
     }
 }

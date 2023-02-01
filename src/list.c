@@ -139,13 +139,13 @@ void walksList(List *l, void (*walk)(int, void *)){
 // retorna um subconjunto determinado: cumpre um requisito ou nao
 List *filterList(List *l, int (*filter)(int, void *)){
   List *temp = buildList(l->type);
-  for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->id,aux->data)) addList(temp, aux->id, aux->cost, aux->data);
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) if(filter(aux->id,aux->data)) addList(temp, aux->id, aux->data);
   return temp;
 }
 
 List *mapList(List *l, void *(*mapper)(void *)){
   List *temp = buildList(l->type);
-  for(Node *aux = l->head; aux != NULL; aux = aux->next) addList(temp, aux->id, aux->cost, mapper(aux->data));
+  for(Node *aux = l->head; aux != NULL; aux = aux->next) addList(temp, aux->id, mapper(aux->data));
   return temp;
 }
 

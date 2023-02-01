@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include "rof.h"
 #include "message.h"
 #include "thread.h"
