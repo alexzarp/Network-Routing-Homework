@@ -2,9 +2,7 @@
 #include "list.h"
 
 List *links = NULL;
-int *parents = NULL;
 pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t parents_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 ThreadConfig *buildThreadConfig(int rid, int socket, Status *srouter, Queue *outputQueue, Queue *inputQueue){
     ThreadConfig *new = malloc(sizeof(*new));
@@ -102,7 +100,7 @@ static void displayNeighborhood(int rid){
         Data value = *((Data *) data);
         value.cost != INF ? printf("%d: %d\n", id, value.cost) : printf("%d: %s\n", id, "INFITY"); 
     }
-    //printf("\n------------------------- Router %d -------------------------\n", rid);
+    printf("\n------------------------- Router %d -------------------------\n", rid);
     printf("Neighborhood\n");
 
     pthread_mutex_lock(&link_mutex);
@@ -158,7 +156,6 @@ static void bellmanFordBuilder(int rid, int grid, List *l, const char *vectord) 
                     temp->cost = costb + bordererCost;
                     temp->parent = grid;
                 }
-                temp->timeout = 5;
             }
         } else { // se nao existe
             // printf("BFD: if not exists, get dv sender as parent\n");
@@ -282,6 +279,10 @@ void *packetHandler (void *config) {
                     // printf("%s: %s\n", control_msg[1], control_msg[2]);
                     // preciso da lista na posicao correta
                     pthread_mutex_lock(&link_mutex);
+                    Data *neighborhood = (Data *)getList(myrouter, atoi(control_msg[1]));
+                    if(neighborhood){
+                        neighborhood->timeout = 5;
+                    }
                     bellmanFordBuilder(arr->rid, atoi(control_msg[1]), myrouter, control_msg[2]);
                     pthread_mutex_unlock(&link_mutex);
                     // setStatus(arr->srouter, atoi(control_msg[1]), 1); STATUS
@@ -310,10 +311,6 @@ void *terminal (void *config) {
     links = rlink(rid);
     List *dv = (List *)getList(links, att->rid);
     pthread_mutex_unlock(&link_mutex);
-
-    pthread_mutex_lock(&parents_mutex);
-    parents = calloc(att->nrouters, sizeof(int));
-    pthread_mutex_unlock(&parents_mutex);
 
     // starting main loop
     do{
@@ -471,8 +468,8 @@ void *killer(void *config) {
         pthread_mutex_lock(&link_mutex);
         
         void decrement(int id, void *data){
-            if(att->rid == id) return;
             Data *aux = (Data *) data;
+            if(att->rid == id || aux->parent != att->rid) return;
             aux->timeout--;
         }
 
@@ -488,7 +485,7 @@ void *killer(void *config) {
                 removeList(dv, id);
                 removeList(links, id);
                 // void setStatus(Status *s, int rid, int value){
-                printf("Killer: Removing %d\n", id);
+                printf("\nKiller: Removing %d\n", id);
             }
         }
 
