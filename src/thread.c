@@ -1,8 +1,6 @@
 #include "thread.h"
 #include "list.h"
 
-#define INF (int)2147483647
-
 List *links = NULL;
 int *parents = NULL;
 pthread_mutex_t link_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -102,7 +100,7 @@ static void displayNeighborhood(int rid){
     void printer(int id, void *data){
         if(id == rid) return;
         Data value = *((Data *) data);
-        printf("%d: %d\n", id, value.cost);
+        value.cost != INF ? printf("%d: %d\n", id, value.cost) : printf("%d: %s\n", id, "INFITY"); 
     }
     //printf("\n------------------------- Router %d -------------------------\n", rid);
     printf("Neighborhood\n");
@@ -286,6 +284,7 @@ void *packetHandler (void *config) {
                     pthread_mutex_lock(&link_mutex);
                     bellmanFordBuilder(arr->rid, atoi(control_msg[1]), myrouter, control_msg[2]);
                     pthread_mutex_unlock(&link_mutex);
+                    // setStatus(arr->srouter, atoi(control_msg[1]), 1); STATUS
                     // printf("Out bellmanford builder\n");
                     // aqui captura
                 }
@@ -331,8 +330,13 @@ void *terminal (void *config) {
 
         pthread_mutex_lock(&link_mutex);
         //printf("\nTerminal: Check if selected route is reacheble\n");
-        if(drouter != -1 && getList(dv, drouter)){
+        Data *dvrouter = (Data *)getList(dv, drouter);
+        if(drouter != -1 && dvrouter){
+            // if(dvrouter->parent != att->rid){
+            //     drouter = dvrouter->parent;
+            // }
             //printf("\nTerminal: Load message\n");
+            
             pthread_mutex_unlock(&link_mutex);
             char root[16];
             char destiny[16];
@@ -478,7 +482,12 @@ void *killer(void *config) {
             if(att->rid == id) return;
             Data *aux = (Data *) data;
             if (!aux->timeout) {
-                removeList(dv, att->rid);
+                setStatus(att->srouter, id, 0);
+                // Data *current = (Data *)getList(dv, id);
+                // current->cost = INF;
+                removeList(dv, id);
+                removeList(links, id);
+                // void setStatus(Status *s, int rid, int value){
                 printf("Killer: Removing %d\n", id);
             }
         }
