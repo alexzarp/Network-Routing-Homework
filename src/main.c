@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
 
     // iniciando threads
     pthread_create(&tpid[3], NULL, terminal, (void*) configs[3]);
+    sleep(1);
     pthread_create(&tpid[0], NULL, receiver, (void*) configs[0]);
     pthread_create(&tpid[1], NULL, sender, (void*) configs[1]);
     pthread_create(&tpid[2], NULL, packetHandler, (void*) configs[2]);
