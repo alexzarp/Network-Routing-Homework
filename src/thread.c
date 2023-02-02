@@ -1,7 +1,7 @@
 #include "thread.h"
 #include "list.h"
 
-#define INF (int)-2147483648
+#define INF (int)2147483647
 
 List *links = NULL;
 int *parents = NULL;
@@ -121,7 +121,6 @@ static void bellmanFordBuilder(int rid, int grid, List *l, const char *vectord) 
     int len = countChar(temp_string, '-') + 1;
     char **tuples = stringSplit(temp_string, "-");
 
-    // como remover o X: se houver
     for(int i = 0; i < len; i++) {
         tuples[i] = replaceWord(tuples[i], "(", "");
         tuples[i] = replaceWord(tuples[i], ")", "");
@@ -129,8 +128,6 @@ static void bellmanFordBuilder(int rid, int grid, List *l, const char *vectord) 
 
     List *newVD = buildList(1);
     
-    // menor custo
-    // já possuo minha lista, agora basta biscar a lista dos vizinhos
     for (int i = 0; i < len; i++) {
         //printf("BFD: load data from tuple %d\n", i);
         char **id_cost = stringSplit(tuples[i], ",");
@@ -139,7 +136,7 @@ static void bellmanFordBuilder(int rid, int grid, List *l, const char *vectord) 
 
         Data *dtemp = malloc(sizeof(Data));
         dtemp->cost = costb;
-        dtemp->timeout = 15;
+        dtemp->timeout = 5;
         dtemp->parent = INF;
 
         int bordererCost;
@@ -150,29 +147,31 @@ static void bellmanFordBuilder(int rid, int grid, List *l, const char *vectord) 
         if (temp) { // se ja existe
             //printf("BFD: if exists, get the router gateway cost\n");
             if(temp->parent != -1){
+                // printf("Obtaing Gateway\n");
                 Data *gateway = getList(l, temp->parent);
-                bordererCost = gateway->cost;
+                bordererCost = gateway ? gateway->cost : INF;
+                // printf("Done!\n");
+                
+                // printf("Obtaing Gateway cost\n");
                 // printf("BFD: gateway (%d,%d)\n", temp->parent, bordererCost);
-                // se o meu atual e pior ou melhor que o novo
-                // eu sou a primeira posicao
                 // printf("BFD: check if new cost is lower\n");
                 if (costb && temp->cost > costb + bordererCost) {
                     // printf("BFD: update router cost,parent and reset timeout\n");
                     temp->cost = costb + bordererCost;
                     temp->parent = grid;
                 }
-                temp->timeout = 15;
+                temp->timeout = 5;
             }
         } else { // se nao existe
             // printf("BFD: if not exists, get dv sender as parent\n");
             Data *gateway = getList(l, grid);
-            bordererCost = gateway->cost;
+            bordererCost = gateway ? gateway->cost : 0;
 
             // printf("BFD: adding unknow routers\n");
 
             Data *new = malloc(sizeof(Data));
             new->cost = costb + bordererCost;
-            new->timeout = 15;
+            new->timeout = 5;
             new->parent = grid;
             // printf("BFD: (%d,%d) has add to dv\n",idb, costb);
             addList(l, idb, (void *)new);   
@@ -180,9 +179,11 @@ static void bellmanFordBuilder(int rid, int grid, List *l, const char *vectord) 
         
         addList(newVD, idb, (void *)dtemp);
     }
+    // printf("Add atualized list\n");
     List *griddv = (List *) getList(links, grid);
     if (griddv) removeList(links, grid);
     addList(links, grid, (void *)newVD); // lista
+    // printf("Att\n");
 }
 
 void *sender(void *config){
@@ -280,11 +281,12 @@ void *packetHandler (void *config) {
                 }
 
                 if (!strcmp(control_msg[0], "gossip")){
-                    printf("%s: %s\n", control_msg[1], control_msg[2]);
+                    // printf("%s: %s\n", control_msg[1], control_msg[2]);
                     // preciso da lista na posicao correta
                     pthread_mutex_lock(&link_mutex);
                     bellmanFordBuilder(arr->rid, atoi(control_msg[1]), myrouter, control_msg[2]);
                     pthread_mutex_unlock(&link_mutex);
+                    // printf("Out bellmanford builder\n");
                     // aqui captura
                 }
             }
