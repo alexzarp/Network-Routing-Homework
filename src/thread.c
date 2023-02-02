@@ -194,6 +194,7 @@ void *sender(void *config){
         memset(buffer,'\0', BUFFER);
         memset((char *) &si_other, 0, sizeof(si_other));
         msg = dequeue(arr->outputQueue);
+        //displayMessage(msg);
 
         //printf("\nSender: Map message to string\n");
         char type[2];
@@ -207,16 +208,30 @@ void *sender(void *config){
         strcat(buffer, (char *)msg->payload);
 
         //printf("\nSender: Load destiny socket informations\n");
-        if(!strcmp((char *)msg->destiny, "127.0.0.1")){
-            free(msg);
-            continue;
-        }
-        char **adress = stringSplit((char *)msg->destiny, ":");
-        si_other.sin_family = AF_INET;
-        si_other.sin_port = htons(atoi(adress[1]));
-        if (inet_aton(adress[0], &si_other.sin_addr) == 0) 
-        {
-            die("sender inet_aton()");
+        if(msg->middle){
+            if(!strcmp((char *)msg->middle, "127.0.0.1")){
+                free(msg);
+                continue;
+            }
+            char **adress = stringSplit((char *)msg->middle, ":");
+            si_other.sin_family = AF_INET;
+            si_other.sin_port = htons(atoi(adress[1]));
+            if (inet_aton(adress[0], &si_other.sin_addr) == 0) 
+            {
+                die("sender inet_aton()");
+            }
+        }else{
+            if(!strcmp((char *)msg->destiny, "127.0.0.1")){
+                free(msg);
+                continue;
+            }
+            char **adress = stringSplit((char *)msg->destiny, ":");
+            si_other.sin_family = AF_INET;
+            si_other.sin_port = htons(atoi(adress[1]));
+            if (inet_aton(adress[0], &si_other.sin_addr) == 0) 
+            {
+                die("sender inet_aton()");
+            }
         }
         //printf("\nSender: Send message\n");
         if (sendto(arr->socket, buffer, strlen(buffer), 0, (struct sockaddr *)&si_other, slen) == -1)
@@ -242,7 +257,7 @@ void *receiver(void *config){
         }
         //printf("\nReceiver: Load incomming message\n");
         char **result = stringSplit(buffer, "|");
-        Message *msg  = buildMessage((int)result[0][0] - 48, result[1], result[2], (void *)result[3], slen);
+        Message *msg  = buildMessage((int)result[0][0] - 48, result[1], NULL, result[2], (void *)result[3], slen);
         //printf("\nReceiver: Enqueue message in input queue\n");
         enqueue(arr->inputQueue, msg);
     }
@@ -257,10 +272,12 @@ void *packetHandler (void *config) {
     pthread_mutex_unlock(&link_mutex);
 
     while(1){
+        char temp_adress[16];
+        char port[6];
         //printf("\nPH: Get message from input queue\n");
         Message *msg = dequeue(arr->inputQueue);
-        char **adress = stringSplit(msg->destiny, ":");
-        char port[6];
+        snprintf(temp_adress, 16,"%s", (char *)msg->destiny);
+        char **adress = stringSplit(temp_adress, ":");
 
         snprintf(port, 6,"%d", 25000+arr->rid);
 
@@ -291,6 +308,15 @@ void *packetHandler (void *config) {
                 }
             }
         } else{
+            pthread_mutex_lock(&link_mutex);
+            char *middle = NULL;
+            Data *neighborhood = (Data *)getList(myrouter, atoi(adress[1]) - 25000);
+            if (neighborhood && neighborhood->parent != arr->rid){
+                char *middle = calloc(16, sizeof(char));
+                snprintf(middle, 16,"127.0.0.1:%d", 25000 + neighborhood->parent);
+            }
+            msg->middle = middle;
+            pthread_mutex_unlock(&link_mutex);
             //printf("\nPH: Enqueue msg in output queue\n");
             enqueue(arr->outputQueue, msg);
         }
@@ -329,19 +355,22 @@ void *terminal (void *config) {
         //printf("\nTerminal: Check if selected route is reacheble\n");
         Data *dvrouter = (Data *)getList(dv, drouter);
         if(drouter != -1 && dvrouter){
-            // if(dvrouter->parent != att->rid){
-            //     drouter = dvrouter->parent;
-            // }
+            char *root = calloc(16, sizeof(char));
+            char *destiny = calloc(16, sizeof(char));
+            char *middle = NULL;
+
+            if(dvrouter->parent != att->rid){
+                middle = calloc(16, sizeof(char));
+                snprintf(middle, 16,"127.0.0.1:%d", 25000 + dvrouter->parent);
+            }
             //printf("\nTerminal: Load message\n");
             
             pthread_mutex_unlock(&link_mutex);
-            char root[16];
-            char destiny[16];
 
             snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
             snprintf(destiny, 16,"127.0.0.1:%d", 25000 + drouter);
             //printf("\nTerminal: Enqueue message to output queue\n");
-            enqueue(att->outputQueue, buildMessage(1,root, destiny, (void *)buffer, BUFFER));
+            enqueue(att->outputQueue, buildMessage(1,root, middle, destiny, (void *)buffer, BUFFER));
         }else{
             pthread_mutex_unlock(&link_mutex);
             if(drouter != -1){
@@ -374,7 +403,7 @@ void *ping(void *config){
 				snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
 				snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(ping, 7,"ping %d", att->rid);
-				Message *msg = buildMessage(0, root, destiny, (void *)ping, 7);
+				Message *msg = buildMessage(0, root, NULL, destiny, (void *)ping, 7);
 
                 //printf("\nPing: Enqueue ping message in ouput queue\n");
 
@@ -448,7 +477,7 @@ void *gossip(void *config){
                 snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
                 snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(gossip, gtam,"gossip %d %s", att->rid, aux->string);
-                Message *msg = buildMessage(0, root, destiny, (void *)gossip, BUFFER);
+                Message *msg = buildMessage(0, root, NULL,destiny,(void *)gossip, BUFFER);
                 //printf("\nGossip: Enqueue gossip message in ouput queue\n");
                 enqueue(att->outputQueue, msg);
             }
@@ -485,7 +514,7 @@ void *killer(void *config) {
                 removeList(dv, id);
                 removeList(links, id);
                 // void setStatus(Status *s, int rid, int value){
-                printf("\nKiller: Removing %d\n", id);
+                //printf("\nKiller: Removing %d\n", id);
             }
         }
 
