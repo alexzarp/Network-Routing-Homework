@@ -62,7 +62,7 @@ List *rlink(char id) {
         die("fopen");
     }
 
-// 1 - Mensagem | 0 - Controle
+    // 1 - Mensagem | 0 - Controle
 	List *matrix = buildList(0);
     List *distance_vector = buildList(1);
     Data *data = malloc(sizeof(Data));

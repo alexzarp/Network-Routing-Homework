@@ -8,10 +8,11 @@ typedef struct message{
     char *destiny; // endereço ip do destino
     int len; // tamanho da mensagem
     void *payload; // conteúdo da mensagem
+    int ttl;
 }Message;
 
 // cria uma mensagem
-Message *buildMessage(int type, char *root, char *middle, char *destiny, void *payload, int len);
+Message *buildMessage(int type, char *root, char *middle, char *destiny, void *payload, int len, int ttl);
 // print de mensagem para debug
 void displayMessage(Message *msg);
 // libera memória alocada para mensagem

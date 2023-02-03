@@ -206,6 +206,10 @@ void *sender(void *config){
         strcat(buffer, msg->destiny);
         strcat(buffer, "|");
         strcat(buffer, (char *)msg->payload);
+        strcat(buffer, "|");
+        char ttl[10];
+        snprintf(ttl, 10,"%d", msg->ttl);
+        strcat(buffer, ttl);
 
         //printf("\nSender: Load destiny socket informations\n");
         if(msg->middle){
@@ -257,7 +261,7 @@ void *receiver(void *config){
         }
         //printf("\nReceiver: Load incomming message\n");
         char **result = stringSplit(buffer, "|");
-        Message *msg  = buildMessage((int)result[0][0] - 48, result[1], NULL, result[2], (void *)result[3], slen);
+        Message *msg  = buildMessage((int)result[0][0] - 48, result[1], NULL, result[2], (void *)result[3], slen, atoi(result[4]));
         //printf("\nReceiver: Enqueue message in input queue\n");
         enqueue(arr->inputQueue, msg);
     }
@@ -276,6 +280,14 @@ void *packetHandler (void *config) {
         char port[6];
         //printf("\nPH: Get message from input queue\n");
         Message *msg = dequeue(arr->inputQueue);
+
+        if (!msg->ttl) {
+            pthread_mutex_lock(&link_mutex);
+            freeList(links);
+            links = rlink(arr->rid);
+            pthread_mutex_unlock(&link_mutex);
+        }
+
         snprintf(temp_adress, 16,"%s", (char *)msg->destiny);
         char **adress = stringSplit(temp_adress, ":");
 
@@ -318,6 +330,7 @@ void *packetHandler (void *config) {
             msg->middle = middle;
             pthread_mutex_unlock(&link_mutex);
             //printf("\nPH: Enqueue msg in output queue\n");
+            msg->ttl--;
             enqueue(arr->outputQueue, msg);
         }
     }
@@ -370,7 +383,7 @@ void *terminal (void *config) {
             snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
             snprintf(destiny, 16,"127.0.0.1:%d", 25000 + drouter);
             //printf("\nTerminal: Enqueue message to output queue\n");
-            enqueue(att->outputQueue, buildMessage(1,root, middle, destiny, (void *)buffer, BUFFER));
+            enqueue(att->outputQueue, buildMessage(1,root, middle, destiny, (void *)buffer, BUFFER, TTL));
         }else{
             pthread_mutex_unlock(&link_mutex);
             if(drouter != -1){
@@ -403,7 +416,7 @@ void *ping(void *config){
 				snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
 				snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(ping, 7,"ping %d", att->rid);
-				Message *msg = buildMessage(0, root, NULL, destiny, (void *)ping, 7);
+				Message *msg = buildMessage(0, root, NULL, destiny, (void *)ping, 7, TTL);
 
                 //printf("\nPing: Enqueue ping message in ouput queue\n");
 
@@ -477,7 +490,7 @@ void *gossip(void *config){
                 snprintf(root, 16,"127.0.0.1:%d", 25000 + att->rid);
                 snprintf(destiny, 16,"127.0.0.1:%d", 25000 + id);
                 snprintf(gossip, gtam,"gossip %d %s", att->rid, aux->string);
-                Message *msg = buildMessage(0, root, NULL,destiny,(void *)gossip, BUFFER);
+                Message *msg = buildMessage(0, root, NULL,destiny,(void *)gossip, BUFFER, TTL);
                 //printf("\nGossip: Enqueue gossip message in ouput queue\n");
                 enqueue(att->outputQueue, msg);
             }

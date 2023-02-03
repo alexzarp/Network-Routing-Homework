@@ -18,6 +18,7 @@
 #define QUEUESIZE 10 // tamanho da fila
 #define TIMEOUT 5 // timeout para o ping
 #define INF (int)2147483647 // valor infinito
+#define TTL 10
 
 typedef struct queue Queue;
 

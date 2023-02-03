@@ -1,7 +1,7 @@
 #include "control.h"
 #include "message.h"
 
-Message *buildMessage(int type, char *root, char *middle, char *destiny, void *payload, int len){
+Message *buildMessage(int type, char *root, char *middle, char *destiny, void *payload, int len, int ttl){
     Message *msg = malloc(sizeof(*msg));
     msg->root = root;
     msg->destiny = destiny;
@@ -9,6 +9,7 @@ Message *buildMessage(int type, char *root, char *middle, char *destiny, void *p
     msg->payload = payload;
     msg->type = type;
     msg->len = len;
+    msg->ttl = ttl;
     return msg;
 }
 
