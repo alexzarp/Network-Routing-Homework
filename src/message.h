@@ -8,7 +8,7 @@ typedef struct message{
     char *destiny; // endereço ip do destino
     int len; // tamanho da mensagem
     void *payload; // conteúdo da mensagem
-    int ttl;
+    int ttl; // numero máximo de saltos de um pacote
 }Message;
 
 // cria uma mensagem
